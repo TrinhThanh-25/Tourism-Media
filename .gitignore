@@ -1,0 +1,54 @@
+# Codex/agent workspace metadata
+.agents/
+.codex/
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+*.iml
+.idea/
+.vscode/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+local.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Android / Gradle outputs
+.gradle/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Node.js outputs
+node_modules/
+dist/
+coverage/
+.nyc_output/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime databases; keep the committed bootstrap database
+*.db
+*.sqlite
+*.sqlite3
+!Travel-App-Server/travel_app.template.db
+**/data/
+
+# Temporary and Python-generated files
+tmp/
+*.tgz
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+.demo_logs/
