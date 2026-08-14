@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Member 1 – Home / Explore / Location. Kept out of strings.xml to avoid merge conflicts. -->
+<resources>
+    <string name="home_hero_label">PICKED FOR YOU</string>
+    <string name="home_hero_title">Step into\nsomewhere new.</string>
+    <string name="home_hero_subtitle">Discover nature, food and the city corners worth a detour.</string>
+    <string name="home_hero_action">Explore now →</string>
+    <string name="home_search_hint">Where do you want to go?</string>
+    <string name="home_section_categories">Categories</string>
+    <string name="home_section_featured">Featured places</string>
+    <string name="home_section_top_rated">Top rated</string>
+    <string name="home_see_all">See all</string>
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+
+    <string name="explore_title">Explore</string>
+    <string name="explore_search_hint">Search places, cities…</string>
+    <string name="explore_filter">Filters</string>
+    <string name="explore_filter_active">Filtered</string>
+    <string name="explore_sort">Sort</string>
+    <string name="explore_clear">Clear</string>
+    <string name="explore_empty">No places match your search.\nTry another keyword or clear the filters.</string>
+    <string name="explore_dialog_filter">Filter places</string>
+    <string name="explore_dialog_sort">Sort places</string>
+    <string name="explore_min_price">Minimum price</string>
+    <string name="explore_max_price">Maximum price</string>
+    <string name="explore_apply">Apply</string>
+    <string name="explore_result_count">%d places</string>
+
+    <string name="explore_sort_rating">Highest rated</string>
+    <string name="explore_sort_reviews">Most reviewed</string>
+    <string name="explore_sort_price_asc">Price: low to high</string>
+    <string name="explore_sort_price_desc">Price: high to low</string>
+    <string name="explore_sort_name_asc">Name: A–Z</string>
+    <string name="explore_sort_name_desc">Name: Z–A</string>
+
+    <string name="location_all_categories">All</string>
+    <string name="location_free">Free</string>
+    <string name="location_label">PLACE</string>
+    <string name="location_section_info">About</string>
+    <string name="location_section_reviews">Reviews</string>
+    <string name="location_no_reviews">No reviews yet. Be the first to share your experience!</string>
+    <string name="location_write_review">Write a review</string>
+    <string name="location_check_in">Check in</string>
+    <string name="location_add_to_trip">Add to trip</string>
+    <string name="location_save">Save to favourites</string>
+    <string name="location_saved">Saved</string>
+    <string name="location_review_hint">Share what you thought…</string>
+    <string name="location_review_send">Post review</string>
+    <string name="location_review_need_login">Sign in to write a review.</string>
+    <string name="location_review_need_rating">Please pick a star rating.</string>
+    <string name="location_review_posted">Review posted</string>
+    <string name="location_review_updated">Review updated</string>
+    <string name="location_review_deleted">Review deleted</string>
+    <string name="location_review_edit">Edit review</string>
+    <string name="location_review_delete">Delete review</string>
+    <string name="location_review_no_comment">(No comment)</string>
+    <string name="location_review_count">%d reviews</string>
+    <string name="location_reviewer_you">%s (you)</string>
+    <string name="location_reviewer_anonymous">Traveller</string>
+    <string name="location_checked_in">Checked in</string>
+    <string name="location_load_failed">Could not load this place</string>
+    <string name="location_image">Place photo</string>
+    <string name="location_back">Back</string>
+    <string name="location_unknown">Not available</string>
+</resources>
