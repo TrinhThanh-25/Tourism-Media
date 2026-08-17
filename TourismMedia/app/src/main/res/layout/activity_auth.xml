@@ -11,20 +11,20 @@
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:text="◉  Tourism Media" android:textColor="@android:color/white" android:textSize="22sp" android:textStyle="bold" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="42dp" android:text="Đi xa hơn.\nSống nhiều hơn."
+                android:layout_marginTop="42dp" android:text="Go further.\nLive more."
                 android:textColor="@android:color/white" android:textSize="36sp" android:textStyle="bold" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="10dp" android:text="Khám phá điểm đến và lưu lại từng dấu chân."
+                android:layout_marginTop="10dp" android:text="Discover places and keep a record of every step."
                 android:textColor="#C9DED3" android:textSize="15sp" />
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_margin="20dp" android:background="@drawable/bg_card" android:elevation="4dp"
             android:orientation="vertical" android:padding="22dp">
             <TextView android:id="@+id/auth_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="Chào mừng trở lại" android:textColor="#17332B" android:textSize="24sp" android:textStyle="bold" />
+                android:text="Welcome back" android:textColor="#17332B" android:textSize="24sp" android:textStyle="bold" />
             <com.google.android.material.textfield.TextInputLayout android:id="@+id/username_layout"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Tên tài khoản"
+                android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Username"
                 android:visibility="gone">
                 <com.google.android.material.textfield.TextInputEditText android:id="@+id/username_input" android:layout_width="match_parent" android:layout_height="wrap_content" />
             </com.google.android.material.textfield.TextInputLayout>
@@ -33,16 +33,16 @@
                 <com.google.android.material.textfield.TextInputEditText android:id="@+id/email_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textEmailAddress" />
             </com.google.android.material.textfield.TextInputLayout>
             <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="Mật khẩu" app:endIconMode="password_toggle">
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="Password" app:endIconMode="password_toggle">
                 <com.google.android.material.textfield.TextInputEditText android:id="@+id/password_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPassword" />
             </com.google.android.material.textfield.TextInputLayout>
             <com.google.android.material.button.MaterialButton android:id="@+id/auth_submit" android:layout_width="match_parent"
-                android:layout_height="54dp" android:layout_marginTop="18dp" android:text="Đăng nhập"
+                android:layout_height="54dp" android:layout_marginTop="18dp" android:text="Sign in"
                 android:textStyle="bold" app:backgroundTint="#12372A" />
             <ProgressBar android:id="@+id/auth_progress" android:layout_width="32dp" android:layout_height="32dp"
                 android:layout_gravity="center" android:layout_marginTop="10dp" android:visibility="gone" />
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center"
-                android:padding="12dp" android:text="hoặc tiếp tục với" android:textColor="#718078" />
+                android:padding="12dp" android:text="or continue with" android:textColor="#718078" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
                 <com.google.android.material.button.MaterialButton android:id="@+id/google_button" style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:text="G  Google" />
@@ -50,7 +50,7 @@
                     android:layout_width="0dp" android:layout_height="50dp" android:layout_marginStart="8dp" android:layout_weight="1" android:text="f  Facebook" />
             </LinearLayout>
             <com.google.android.material.button.MaterialButton android:id="@+id/auth_switch" style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Chưa có tài khoản? Đăng ký" />
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="No account yet? Sign up" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

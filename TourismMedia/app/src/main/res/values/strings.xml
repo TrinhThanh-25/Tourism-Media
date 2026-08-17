@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">Tourism Media</string>
-    <string name="nav_home">Trang chủ</string>
-    <string name="nav_explore">Khám phá</string>
-    <string name="nav_trips">Chuyến đi</string>
-    <string name="nav_challenges">Thử thách</string>
-    <string name="nav_profile">Tài khoản</string>
-    <string name="home_description">Điểm bắt đầu cho gợi ý địa điểm, chuyến đi nổi bật và hoạt động gần đây.</string>
-    <string name="explore_description">Tìm kiếm địa điểm, xem bản đồ, ảnh, đánh giá và lưu địa điểm yêu thích.</string>
-    <string name="trips_description">Xem hành trình công khai, quản lý chuyến đi cá nhân và các chuyến đã lưu.</string>
-    <string name="challenges_description">Theo dõi thử thách, tiến độ check-in, điểm thưởng và phần thưởng có thể đổi.</string>
-    <string name="profile_description">Đăng nhập, hồ sơ cá nhân, lịch sử check-in, điểm, voucher và thiết lập tài khoản.</string>
-    <string name="skeleton_notice">Khu vực khung – nội dung và chức năng sẽ được hoàn thiện sau.</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_trips">Trips</string>
+    <string name="nav_challenges">Challenges</string>
+    <string name="nav_profile">Profile</string>
+    <string name="home_description">Your starting point for place suggestions, featured trips and recent activity.</string>
+    <string name="explore_description">Search places, browse the map, photos and reviews, and save your favourites.</string>
+    <string name="trips_description">Browse public itineraries, manage your own trips and the ones you saved.</string>
+    <string name="challenges_description">Track challenges, check-in progress, reward points and what you can redeem.</string>
+    <string name="profile_description">Sign in, your profile, check-in history, points, vouchers and account settings.</string>
+    <string name="skeleton_notice">Placeholder area - content and features are still being defined.</string>
 </resources>
