@@ -75,6 +75,24 @@ export const logout = async (req, res) => {
   res.json({ message: "Logout successful" });
 };
 
+// Demo-friendly password reset. A production app must verify an emailed OTP or
+// signed reset link before accepting the new password.
+export const forgotPassword = async (req, res) => {
+  try {
+    const email = req.body.email.toLowerCase();
+    const user = await get("SELECT id FROM users WHERE lower(email) = ?", [email]);
+    if (!user) return res.status(404).json({ error: "Không tìm thấy tài khoản với email này" });
+    const passwordHash = await bcrypt.hash(req.body.new_password, BCRYPT_ROUNDS);
+    await transaction(async queries => {
+      await queries.run("UPDATE users SET password = ? WHERE id = ?", [passwordHash, user.id]);
+      await queries.run("UPDATE user_refresh_tokens SET revoked = 1 WHERE user_id = ?", [user.id]);
+    });
+    res.json({ message: "Mật khẩu đã được đặt lại" });
+  } catch {
+    res.status(500).json({ error: "Không thể đặt lại mật khẩu" });
+  }
+};
+
 export const me = async (req, res) => {
   try {
     const user = await get(

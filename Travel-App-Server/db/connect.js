@@ -42,10 +42,12 @@ async function initializeDatabase() {
   await ensureColumn("user_reward", "created_at", "TEXT");
   await ensureColumn("user_challenge", "progress", "INTEGER DEFAULT 0");
   await ensureColumn("user_challenge", "completed_at", "TEXT");
+  await ensureColumn("trips", "published_at", "TEXT");
   await runMigrations(db);
   for (const statement of INDEXES) await execute(statement);
   await execute(`UPDATE user_reward SET created_at=COALESCE(created_at,issued_at,obtained_at,
     strftime('%Y-%m-%dT%H:%M:%fZ','now')) WHERE created_at IS NULL`);
+  await execute("UPDATE trips SET published_at=COALESCE(published_at,created_at) WHERE is_post=1 AND published_at IS NULL");
   const adminEmails = (process.env.ADMIN_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean);
   for (const email of adminEmails) await execute("UPDATE users SET role='admin' WHERE lower(email)=?", [email]);
 }

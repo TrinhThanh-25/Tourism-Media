@@ -7,14 +7,17 @@ export const createFavoriteController = ({
   resourceLabel,
   availabilityCondition = "1=1",
   availabilityError = `${resourceLabel} not found`,
-  orderBy = "resource.id DESC"
+  orderBy = "resource.id DESC",
+  selectExtras = "",
+  joins = ""
 }) => {
   const list = async (req, res) => {
     try {
       const rows = await all(
-        `SELECT resource.*, 1 AS is_favorite
+        `SELECT resource.*, 1 AS is_favorite${selectExtras ? `,${selectExtras}` : ""}
          FROM ${resourceTable} resource
          JOIN ${junctionTable} favorite ON favorite.${foreignKey}=resource.id
+         ${joins}
          WHERE favorite.user_id=? AND ${availabilityCondition}
          ORDER BY ${orderBy}`,
         [req.user.id]

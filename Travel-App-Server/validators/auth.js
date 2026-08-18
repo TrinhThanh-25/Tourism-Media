@@ -18,3 +18,8 @@ export const refreshTokenSchema = Joi.object({
 export const logoutSchema = Joi.object({
   refreshToken: Joi.string().hex().length(96).optional()
 });
+
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().required(),
+  new_password: Joi.string().min(8).max(128).required()
+});

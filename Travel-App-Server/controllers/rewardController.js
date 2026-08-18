@@ -108,7 +108,11 @@ export const redeemReward = async (req, res) => {
 export const getUserInventory = async (req, res) => {
   try {
     res.json(await all(
-      `SELECT ur.id AS voucher_id, ur.code, ur.status, ur.used_at, ur.expires_at,
+      `SELECT ur.id AS voucher_id, ur.code,
+       CASE WHEN ur.status='active' AND ur.expires_at IS NOT NULL
+         AND julianday(ur.expires_at) <= julianday('now') THEN 'expired'
+         ELSE ur.status END AS status,
+       ur.used_at, ur.expires_at,
        ur.created_at, r.id AS reward_id, r.name, r.description, r.percent
        FROM user_reward ur JOIN rewards r ON r.id=ur.reward_id
        WHERE ur.user_id=? ORDER BY ur.created_at DESC`, [req.user.id]

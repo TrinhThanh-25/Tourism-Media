@@ -82,13 +82,25 @@ async function calculateProgress(challenge, userId, queries = { get }) {
 export async function buildChallengeProgress(challenge, userId, queries = { get }) {
   const progress = await calculateProgress(challenge,userId,queries);
   const target = targetFor(challenge);
+  const membership = await queries.get(
+    "SELECT status,joined_at,completed_at FROM user_challenge WHERE user_id=? AND challenge_id=?",
+    [userId,challenge.id]
+  );
+  const now = Date.now();
+  const active = (!challenge.start_date || new Date(challenge.start_date).getTime() <= now)
+    && (!challenge.end_date || new Date(challenge.end_date).getTime() >= now);
   return {
     ...challenge,
     criteria:parseCriteria(challenge.criteria),
     progress,
     target,
     percent:target > 0 ? Math.min(100,Math.floor(progress / target * 100)) : 0,
-    eligible:target > 0 && progress >= target
+    eligible:target > 0 && progress >= target,
+    joined:Boolean(membership),
+    status:membership?.status || "not_started",
+    joined_at:membership?.joined_at || null,
+    completed_at:membership?.completed_at || null,
+    active
   };
 }
 
