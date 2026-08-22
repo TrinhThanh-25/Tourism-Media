@@ -23,7 +23,6 @@ import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.LocationImage;
 import com.example.tourismmedia.data.model.AppModels.Review;
-import com.example.tourismmedia.ui.common.SystemBars;
 import com.example.tourismmedia.ui.location.adapter.LocationImageAdapter;
 import com.example.tourismmedia.ui.location.adapter.ReviewAdapter;
 import com.google.android.material.button.MaterialButton;
@@ -119,8 +118,6 @@ public class LocationDetailFragment extends Fragment {
         addToTrip = view.findViewById(R.id.detail_add_to_trip);
 
         content.setVisibility(View.INVISIBLE);
-        SystemBars.marginTop(view.findViewById(R.id.detail_back));
-        SystemBars.marginTop(favorite);
         favorite.setOnClickListener(v -> toggleFavorite());
         checkIn.setOnClickListener(v -> checkIn());
         addToTrip.setOnClickListener(v -> addToTrip());
