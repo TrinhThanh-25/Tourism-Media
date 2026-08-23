@@ -5,7 +5,11 @@ import android.content.Intent;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
@@ -24,6 +28,11 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         setContentView(R.layout.activity_main);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+            view.setPadding(0, bars.top, 0, 0);
+            return windowInsets;
+        });
 
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
@@ -34,6 +43,19 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = navHostFragment.getNavController();
         BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
         NavigationUI.setupWithNavController(bottomNavigation, navController);
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int destinationId = item.getItemId();
+            if (navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == destinationId) {
+                return true;
+            }
+            NavOptions options = new NavOptions.Builder()
+                    .setPopUpTo(R.id.homeFragment, false)
+                    .setLaunchSingleTop(true)
+                    .build();
+            navController.navigate(destinationId, null, options);
+            return true;
+        });
         navController.addOnDestinationChangedListener((controller, destination, arguments) ->
                 bottomNavigation.setVisibility(isFullScreenDestination(destination.getId()) ? View.GONE : View.VISIBLE));
     }
@@ -42,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
     private static boolean isFullScreenDestination(int destinationId) {
         return destinationId == R.id.detailFragment
                 || destinationId == R.id.locationDetailFragment
-                || destinationId == R.id.accountCollectionFragment;
+                || destinationId == R.id.accountCollectionFragment
+                || destinationId == R.id.tripDetailFragment
+                || destinationId == R.id.tripWorkspaceFragment
+                || destinationId == R.id.member3WorkspaceFragment;
     }
 }
