@@ -1,13 +1,18 @@
 # Codex/agent workspace metadata
-.agents/
-.codex/
+/.agents/
+/.codex/
+/.demo-logs/
 
 # Operating systems and editors
 .DS_Store
 Thumbs.db
+Desktop.ini
 *.iml
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
 # Local configuration and secrets
 .env
@@ -19,14 +24,19 @@ local.properties
 *.p12
 *.pem
 
-# Android / Gradle outputs
+# Android / Gradle generated files
 .gradle/
 **/build/
 captures/
 .externalNativeBuild/
 .cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
 
-# Node.js outputs
+# Node.js generated files
 node_modules/
 dist/
 coverage/
@@ -35,25 +45,42 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Runtime databases; keep the committed bootstrap database
 *.db
+*.db-journal
 *.sqlite
+*.sqlite-journal
 *.sqlite3
+*.sqlite3-journal
 !Travel-App-Server/travel_app.template.db
-# Server runtime database directory only (NOT Android source packages named data/)
-Travel-App-Server/data/
+/Travel-App-Server/data/
 
-# Temporary and Python-generated files
+# Temporary files and archives
 tmp/
+temp/
+*.tmp
+*.temp
 *.tgz
+*.zip
+
+# Python-generated files used by optional scripts/tools
 .venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
 
-.demo-logs/
+# Local task notes
+/TASK.md
 
+# Internal reports, assignment notes, and generated review material
+**/BAO_CAO*.md
+**/PHAN_CHIA*.md
+**/ARCHITECTURE.md
+**/APP_IMPLEMENTATION.md
 
-# Markdown file
-TASK.md
+# UI mockups and screenshots are not required to build Backend or Android
+/ui-prototype/
+**/screenshots/
