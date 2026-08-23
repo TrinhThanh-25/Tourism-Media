@@ -31,8 +31,20 @@ public class SessionManager {
                 .apply();
     }
 
+    /** Compatibility helper for flows where the email is not returned by the API. */
+    public void save(AuthResponse response) {
+        save(response, email());
+    }
+
     public void clear() {
         preferences.edit().clear().apply();
+    }
+
+    public synchronized void updateTokens(String accessToken, String refreshToken) {
+        preferences.edit()
+                .putString(KEY_TOKEN, accessToken)
+                .putString(KEY_REFRESH, refreshToken)
+                .commit();
     }
 
     public boolean isLoggedIn() {
@@ -50,12 +62,17 @@ public class SessionManager {
         return value == null ? null : "Bearer " + value;
     }
 
+    public String refreshToken() {
+        String value = preferences.getString(KEY_REFRESH, null);
+        return value == null || value.isBlank() ? null : value;
+    }
+
     public long userId() {
         return preferences.getLong(KEY_USER_ID, 0L);
     }
 
     public String username() {
-        return preferences.getString(KEY_USERNAME, null);
+        return preferences.getString(KEY_USERNAME, "Traveler");
     }
 
     public String email() {

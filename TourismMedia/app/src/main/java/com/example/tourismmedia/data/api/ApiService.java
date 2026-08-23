@@ -7,11 +7,14 @@ import com.example.tourismmedia.data.model.AppModels.LocationImage;
 import com.example.tourismmedia.data.model.AppModels.Message;
 import com.example.tourismmedia.data.model.AppModels.Profile;
 import com.example.tourismmedia.data.model.AppModels.ProfileUpdate;
+import com.example.tourismmedia.data.model.AppModels.PointTransaction;
+import com.example.tourismmedia.data.model.AppModels.PointsBalance;
 import com.example.tourismmedia.data.model.AppModels.Review;
 import com.example.tourismmedia.data.model.AppModels.Reward;
 import com.example.tourismmedia.data.model.AppModels.RewardCatalog;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.TripPage;
+import com.example.tourismmedia.data.model.AppModels.TripReview;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
 
 import java.util.List;
@@ -42,6 +45,15 @@ public interface ApiService {
 
     @POST("auth/login")
     Call<AuthResponse> login(@Body Map<String, Object> body);
+
+    @POST("auth/logout")
+    Call<Message> logout(@Body Map<String, Object> body);
+
+    @POST("auth/refresh")
+    Call<AuthResponse> refresh(@Body Map<String, Object> body);
+
+    @POST("auth/forgot-password")
+    Call<Message> forgotPassword(@Body Map<String, Object> body);
 
     // ----------------------------------------------------------- locations
     @GET("api/locations")
@@ -94,6 +106,10 @@ public interface ApiService {
     Call<ProfileUpdate> updateProfile(@Header("Authorization") String auth,
                                       @Body Map<String, Object> body);
 
+    @POST("api/me/password")
+    Call<Message> updatePassword(@Header("Authorization") String auth,
+                                 @Body Map<String, Object> body);
+
     @GET("api/me/locations")
     Call<List<Location>> checkIns(@Header("Authorization") String auth);
 
@@ -109,6 +125,15 @@ public interface ApiService {
     @GET("api/me/vouchers")
     Call<List<Voucher>> vouchers(@Header("Authorization") String auth);
 
+    @POST("api/me/vouchers/{id}/use")
+    Call<Message> useVoucher(@Header("Authorization") String auth, @Path("id") long voucherId);
+
+    @GET("api/me/points")
+    Call<PointsBalance> points(@Header("Authorization") String auth);
+
+    @GET("api/me/point-transactions")
+    Call<List<PointTransaction>> pointTransactions(@Header("Authorization") String auth);
+
     // ---------------------------------------------------------------- trips
     @GET("api/trips")
     Call<TripPage> trips(@Header("Authorization") String auth, @QueryMap Map<String, String> query);
@@ -119,11 +144,27 @@ public interface ApiService {
     @POST("api/trips")
     Call<Trip> createTrip(@Header("Authorization") String auth, @Body Map<String, Object> body);
 
+    @PUT("api/trips/{id}")
+    Call<Trip> updateTrip(@Header("Authorization") String auth, @Path("id") long id,
+                          @Body Map<String, Object> body);
+
+    @GET("api/trips/me")
+    Call<List<Trip>> myTrips(@Header("Authorization") String auth);
+
     @GET("api/trips/me/favorites")
     Call<List<Trip>> favoriteTrips(@Header("Authorization") String auth);
 
     @POST("api/trips/{id}/favorite")
     Call<Message> addFavoriteTrip(@Header("Authorization") String auth, @Path("id") long id);
+
+    @DELETE("api/trips/{id}/favorite")
+    Call<Message> removeFavoriteTrip(@Header("Authorization") String auth, @Path("id") long id);
+
+    @POST("api/trips/{id}/publish")
+    Call<Trip> publishTrip(@Header("Authorization") String auth, @Path("id") long id);
+
+    @POST("api/trips/{id}/unpublish")
+    Call<Trip> unpublishTrip(@Header("Authorization") String auth, @Path("id") long id);
 
     // ----------------------------------------------------- challenges/rewards
     @GET("api/challenges")
@@ -135,6 +176,23 @@ public interface ApiService {
     @POST("api/challenges/{id}/join")
     Call<Message> joinChallenge(@Header("Authorization") String auth, @Path("id") long id);
 
+    @GET("api/challenges/{id}/progress")
+    Call<Challenge> challengeProgress(@Header("Authorization") String auth, @Path("id") long id);
+
+    @GET("api/me/challenges")
+    Call<List<Challenge>> myChallenges(@Header("Authorization") String auth);
+
+    @POST("api/challenges/{id}/complete")
+    Call<Message> completeChallenge(@Header("Authorization") String auth, @Path("id") long id);
+
     @GET("api/rewards/{id}")
     Call<Reward> reward(@Path("id") long id);
+
+    // ---------------------------------------------------------- trip reviews
+    @GET("api/trip-reviews/trip/{id}")
+    Call<List<TripReview>> tripReviews(@Path("id") long tripId);
+
+    @POST("api/trip-reviews")
+    Call<TripReview> createTripReview(@Header("Authorization") String auth,
+                                      @Body Map<String, Object> body);
 }

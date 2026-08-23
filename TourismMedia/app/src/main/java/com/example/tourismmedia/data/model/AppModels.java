@@ -48,6 +48,13 @@ public final class AppModels {
         @SerializedName("distance_km")
         public Double distanceKm;
 
+        // Populated when a location is embedded in a trip itinerary.
+        public Integer day;
+        public String time;
+
+        @SerializedName("order_index")
+        public Integer orderIndex;
+
         public List<LocationImage> images;
 
         public boolean isFavorite() {
@@ -104,6 +111,26 @@ public final class AppModels {
 
         @SerializedName("is_favorite")
         public int favorite;
+
+        @SerializedName("is_post")
+        public int published;
+
+        @SerializedName("user_id")
+        public long userId;
+
+        @SerializedName("author_username")
+        public String authorUsername;
+
+        @SerializedName("author_avatar")
+        public String authorAvatar;
+
+        @SerializedName("created_at")
+        public String createdAt;
+
+        @SerializedName("published_at")
+        public String publishedAt;
+
+        public List<Location> locations;
     }
 
     /** `GET /api/trips` answers with a paged envelope instead of a bare array. */
@@ -119,8 +146,14 @@ public final class AppModels {
         public long id;
         public String name;
         public String description;
+        public String status;
         public int progress;
         public int target;
+        public int percent;
+        public boolean eligible;
+        public boolean joined;
+        public boolean active;
+        public List<Location> locations;
 
         @SerializedName("reward_point")
         public int rewardPoint;
@@ -144,6 +177,19 @@ public final class AppModels {
         public String description;
         public int cost;
         public int percent;
+        public int eligible;
+
+        @SerializedName("start_date")
+        public String startDate;
+
+        @SerializedName("end_date")
+        public String endDate;
+
+        @SerializedName("expires_at")
+        public String expiresAt;
+
+        @SerializedName("per_user_limit")
+        public int perUserLimit;
     }
 
     public static class RewardCatalog {
@@ -163,6 +209,15 @@ public final class AppModels {
 
         @SerializedName("reward_id")
         public long rewardId;
+
+        @SerializedName("expires_at")
+        public String expiresAt;
+
+        @SerializedName("created_at")
+        public String createdAt;
+
+        @SerializedName("used_at")
+        public String usedAt;
     }
 
     public static class Profile {
@@ -171,6 +226,9 @@ public final class AppModels {
         public String email;
         public String role;
         public String avatar;
+        public String dob;
+        public String gender;
+        public String phone;
 
         @SerializedName("total_point")
         public int points;
@@ -198,5 +256,35 @@ public final class AppModels {
     public static class Message {
         public String message;
         public String error;
+        public int remainingPoints;
+    }
+
+    public static class TripReview {
+        public long id;
+        public long userId;
+        public int rating;
+        public String comment;
+        public String username;
+
+        @SerializedName("created_at")
+        public String createdAt;
+    }
+
+    public static class PointsBalance {
+        public int points;
+    }
+
+    public static class PointTransaction {
+        public long id;
+
+        @SerializedName("reward_id")
+        public Long rewardId;
+
+        public int points;
+        public String type;
+        public String description;
+
+        @SerializedName("created_at")
+        public String createdAt;
     }
 }

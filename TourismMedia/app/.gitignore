@@ -1,1 +1,14 @@
-/build
+# Module build and native-tool output
+/build/
+/.cxx/
+/.externalNativeBuild/
+
+# Generated release artifacts and local signing files
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Generated test reports and screenshots outside Gradle build directories
+/reports/
+/screenshots/
