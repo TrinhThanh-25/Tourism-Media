@@ -1,6 +1,6 @@
 import express from 'express';
 import { editReview, createReview, listReviewsForTrip, deleteReview } from '../controllers/tripReviewController.js';
-import { authenticateJWT } from '../middleware/auth.js';
+import { authenticateJWT, optionalJWT } from '../middleware/auth.js';
 import { validateSchema } from '../middleware/validate.js';
 import Joi from 'joi';
 
@@ -10,7 +10,7 @@ const createSchema = Joi.object({ trip_id: Joi.number().integer().positive().req
 const updateSchema = Joi.object({ rating: Joi.number().integer().min(1).max(5).required(), comment: Joi.string().max(2000).allow('', null) });
 
 router.post('/', authenticateJWT, validateSchema(createSchema), createReview);
-router.get('/trip/:tripId', listReviewsForTrip);
+router.get('/trip/:tripId', optionalJWT, listReviewsForTrip);
 router.delete('/:id', authenticateJWT, deleteReview);
 router.put('/:id', authenticateJWT, validateSchema(updateSchema), editReview);
 
