@@ -190,7 +190,7 @@ public interface ApiService {
 
     // ---------------------------------------------------------- trip reviews
     @GET("api/trip-reviews/trip/{id}")
-    Call<List<TripReview>> tripReviews(@Path("id") long tripId);
+    Call<List<TripReview>> tripReviews(@Header("Authorization") String auth, @Path("id") long tripId);
 
     @POST("api/trip-reviews")
     Call<TripReview> createTripReview(@Header("Authorization") String auth,
