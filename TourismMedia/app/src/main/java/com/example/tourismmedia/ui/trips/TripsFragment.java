@@ -111,6 +111,7 @@ public class TripsFragment extends Fragment {
 
     private void load() {
         AppRepository.Result<java.util.List<Trip>> result = (data, error, stale) -> {
+            if (!viewActive()) return;
             adapter.setOwnerMode(TAB_MINE.equals(activeTab));
             adapter.submit(data);
             boolean empty = data == null || data.isEmpty();
@@ -142,7 +143,7 @@ public class TripsFragment extends Fragment {
     private void toggleFavorite(Trip trip, int position) {
         boolean saved = trip.favorite == 1;
         repo.favoriteTrip(trip.id, saved, (message, error, stale) -> {
-            if (!isAdded()) return;
+            if (!viewActive()) return;
             if (error != null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                 return;
@@ -156,7 +157,7 @@ public class TripsFragment extends Fragment {
     private void togglePublished(Trip trip, int position) {
         boolean publish = trip.published != 1;
         repo.setTripPublished(trip.id, publish, (updated, error, stale) -> {
-            if (!isAdded()) return;
+            if (!viewActive()) return;
             if (error != null || updated == null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                 return;
@@ -198,4 +199,6 @@ public class TripsFragment extends Fragment {
         if (locationId > 0) args.putLong("initial_location_id", locationId);
         Navigation.findNavController(requireView()).navigate(R.id.tripWorkspaceFragment, args);
     }
+
+    private boolean viewActive() { return isAdded() && getView() != null; }
 }

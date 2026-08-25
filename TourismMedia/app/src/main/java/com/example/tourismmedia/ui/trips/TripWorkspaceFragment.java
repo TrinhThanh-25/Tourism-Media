@@ -1,6 +1,7 @@
 package com.example.tourismmedia.ui.trips;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -40,6 +41,7 @@ import com.example.tourismmedia.data.model.AppModels.TripReview;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -105,6 +107,7 @@ public class TripWorkspaceFragment extends Fragment {
         secondary.setOnClickListener(v -> Navigation.findNavController(view).navigateUp());
         if (id > 0 && !mode.equals("filter") && !mode.equals("reviews") && !mode.equals("write-review")) {
             repo.trip(id, (item, error, stale) -> {
+                if (!viewActive()) return;
                 trip = item;
                 render();
             });
@@ -329,17 +332,18 @@ public class TripWorkspaceFragment extends Fragment {
         if (selectedCover != null) body.put("url_image", selectedCover.toString());
         if (!editing) body.put("locations", new ArrayList<>());
         repo.saveTrip(editing ? id : null, body, (item, error, stale) -> {
-            if (!isAdded()) return;
+            if (!viewActive()) return;
             if (error != null || item == null) {
                 Toast.makeText(requireContext(), error == null ? "Không thể lưu chuyến đi" : error, Toast.LENGTH_LONG).show();
                 return;
             }
             if (!editing && publishAfterCreate) {
                 repo.setTripPublished(item.id, true, (published, publishError, ignored) -> {
-                    if (!isAdded()) return;
+                    if (!viewActive()) return;
                     Toast.makeText(requireContext(), publishError == null
-                            ? "Đã tạo và đăng chuyến đi lên cộng đồng" : publishError, Toast.LENGTH_LONG).show();
-                    if (publishError == null) Navigation.findNavController(requireView()).navigateUp();
+                            ? "Đã tạo và đăng chuyến đi lên cộng đồng"
+                            : "Đã lưu chuyến đi riêng tư. Bạn có thể đăng lại từ tab Của tôi.", Toast.LENGTH_LONG).show();
+                    Navigation.findNavController(requireView()).navigateUp();
                 });
             } else {
                 Toast.makeText(requireContext(), editing ? "Đã lưu thay đổi" : "Đã lưu chuyến đi riêng tư", Toast.LENGTH_LONG).show();
@@ -549,6 +553,7 @@ public class TripWorkspaceFragment extends Fragment {
                 labelParams.setMargins(dp(12), 0, 0, 0);
                 itemRow.addView(labels, labelParams);
                 itemRow.addView(text("☰", 20, false));
+                itemRow.setOnClickListener(v -> showItineraryActions(location));
                 dayCard.addView(itemRow);
             }
         }
@@ -582,6 +587,7 @@ public class TripWorkspaceFragment extends Fragment {
         List<CheckBox> rows = new ArrayList<>();
         List<Location> visibleLocations = new ArrayList<>();
         repo.locations("", (data, error, stale) -> {
+            if (!viewActive()) return;
             for (Location location : data.subList(0, Math.min(30, data.size()))) {
                 CheckBox box = new CheckBox(requireContext());
                 box.setText(location.name + "\n" + (location.category == null ? "" : location.category) + " · ★ " + location.rating);
@@ -651,6 +657,7 @@ public class TripWorkspaceFragment extends Fragment {
         Map<String, Object> body = new HashMap<>();
         body.put("locations", items);
         repo.saveTrip(id, body, (item, error, stale) -> {
+            if (!viewActive()) return;
             Toast.makeText(requireContext(), error == null ? "Đã cập nhật itinerary" : error, Toast.LENGTH_LONG).show();
             if (error == null) Navigation.findNavController(requireView()).navigateUp();
         });
@@ -665,6 +672,72 @@ public class TripWorkspaceFragment extends Fragment {
         return item;
     }
 
+    private void showItineraryActions(Location location) {
+        if (trip == null || trip.locations == null) return;
+        int index = trip.locations.indexOf(location);
+        String[] actions = {"Sửa ngày và giờ", "Di chuyển lên", "Di chuyển xuống", "Xóa khỏi hành trình"};
+        new AlertDialog.Builder(requireContext())
+                .setTitle(location.name)
+                .setItems(actions, (dialog, selectedAction) -> {
+                    if (selectedAction == 0) {
+                        editItineraryTime(location);
+                    } else if (selectedAction == 1 && index > 0) {
+                        Collections.swap(trip.locations, index, index - 1);
+                        normalizeItineraryOrder();
+                        render();
+                    } else if (selectedAction == 2 && index < trip.locations.size() - 1) {
+                        Collections.swap(trip.locations, index, index + 1);
+                        normalizeItineraryOrder();
+                        render();
+                    } else if (selectedAction == 3) {
+                        trip.locations.remove(location);
+                        normalizeItineraryOrder();
+                        render();
+                    }
+                })
+                .show();
+    }
+
+    private void editItineraryTime(Location location) {
+        LinearLayout form = new LinearLayout(requireContext());
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(24), 0, dp(24), 0);
+        EditText day = new EditText(requireContext());
+        day.setHint("Ngày (ví dụ: 1)");
+        day.setInputType(InputType.TYPE_CLASS_NUMBER);
+        day.setText(String.valueOf(location.day == null ? 1 : location.day));
+        EditText time = new EditText(requireContext());
+        time.setHint("Giờ HH:mm (ví dụ: 08:30)");
+        time.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_TIME);
+        time.setText(location.time == null ? "" : location.time);
+        form.addView(day);
+        form.addView(time);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Lịch trình cho " + location.name)
+                .setView(form)
+                .setNegativeButton("Hủy", null)
+                .setPositiveButton("Lưu", (dialog, which) -> {
+                    int dayValue;
+                    try { dayValue = Integer.parseInt(day.getText().toString().trim()); }
+                    catch (NumberFormatException ignored) { dayValue = 0; }
+                    String timeValue = time.getText().toString().trim();
+                    if (dayValue < 1 || (!timeValue.isEmpty() && !timeValue.matches("([01]\\d|2[0-3]):[0-5]\\d"))) {
+                        Toast.makeText(requireContext(), "Ngày hoặc giờ chưa hợp lệ", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    location.day = dayValue;
+                    location.time = timeValue.isEmpty() ? null : timeValue;
+                    render();
+                })
+                .show();
+    }
+
+    private void normalizeItineraryOrder() {
+        for (int index = 0; index < trip.locations.size(); index++) {
+            trip.locations.get(index).orderIndex = index;
+        }
+    }
+
     private void saveCurrentItinerary() {
         if (trip == null || trip.locations == null) return;
         List<Map<String, Object>> items = new ArrayList<>();
@@ -674,7 +747,7 @@ public class TripWorkspaceFragment extends Fragment {
         Map<String, Object> body = new HashMap<>();
         body.put("locations", items);
         repo.saveTrip(id, body, (updated, error, stale) -> {
-            if (!isAdded()) return;
+            if (!viewActive()) return;
             Toast.makeText(requireContext(), error == null ? "Itinerary đã được lưu" : error, Toast.LENGTH_SHORT).show();
             if (error == null) Navigation.findNavController(requireView()).navigateUp();
         });
@@ -694,6 +767,7 @@ public class TripWorkspaceFragment extends Fragment {
         });
         content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
         repo.tripReviews(id, (data, error, stale) -> {
+            if (!viewActive()) return;
             heading(data.size() + " đánh giá");
             if (data.isEmpty()) empty("Chưa có đánh giá", "Hãy là người đầu tiên chia sẻ trải nghiệm.");
             for (TripReview review : data) {
@@ -725,6 +799,7 @@ public class TripWorkspaceFragment extends Fragment {
         primary.setText("Gửi đánh giá");
         primary.setOnClickListener(v -> repo.createTripReview(id, (int) stars.getRating(),
                 comment.getText().toString(), (item, error, stale) -> {
+                    if (!viewActive()) return;
                     Toast.makeText(requireContext(), error == null ? "Đã gửi đánh giá" : error, Toast.LENGTH_LONG).show();
                     if (error == null) {
                         mode = "reviews";
@@ -744,4 +819,6 @@ public class TripWorkspaceFragment extends Fragment {
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
+
+    private boolean viewActive() { return isAdded() && getView() != null; }
 }

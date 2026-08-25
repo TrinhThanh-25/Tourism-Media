@@ -18,6 +18,7 @@ import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.ui.common.SimpleCardAdapter;
+import com.example.tourismmedia.ui.location.LocationDetailFragment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,8 +50,8 @@ public class TripDetailFragment extends Fragment {
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
         SimpleCardAdapter adapter = new SimpleCardAdapter(item -> {
             Location location = (Location) item.value;
-            Bundle args = new Bundle(); args.putString("type", "location"); args.putLong("id", location.id);
-            Navigation.findNavController(view).navigate(R.id.detailFragment, args);
+            Navigation.findNavController(view).navigate(R.id.locationDetailFragment,
+                    LocationDetailFragment.argsFor(location.id, location.name));
         });
         list.setAdapter(adapter);
 
