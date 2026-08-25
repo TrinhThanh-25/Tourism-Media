@@ -16,6 +16,7 @@ import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
 import com.example.tourismmedia.ui.common.SimpleCardAdapter;
+import com.example.tourismmedia.ui.location.LocationDetailFragment;
 import com.example.tourismmedia.ui.trips.TripCardAdapter;
 import com.google.android.material.button.MaterialButton;
 import java.util.ArrayList;
@@ -108,7 +109,7 @@ public class AccountCollectionFragment extends Fragment {
     }
 
     private void showState(int count,String error,String emptyMessage){status.setText(error!=null?error:count+" mục trong bộ sưu tập");boolean none=count==0;empty.setVisibility(none?View.VISIBLE:View.GONE);list.setVisibility(none?View.GONE:View.VISIBLE);emptyText.setText(error!=null&&error.contains("401")?"Phiên đăng nhập đã hết hạn":emptyMessage);}
-    private void openSimple(SimpleCardAdapter.CardItem item){if(item.value instanceof Location){Bundle args=new Bundle();args.putString("type","location");args.putLong("id",((Location)item.value).id);Navigation.findNavController(requireView()).navigate(R.id.detailFragment,args);}else if(item.value instanceof Voucher){Bundle args=new Bundle();args.putString("mode","voucher-detail");args.putLong("id",((Voucher)item.value).voucherId);Navigation.findNavController(requireView()).navigate(R.id.member3WorkspaceFragment,args);}}
+    private void openSimple(SimpleCardAdapter.CardItem item){if(item.value instanceof Location){Location location=(Location)item.value;Navigation.findNavController(requireView()).navigate(R.id.locationDetailFragment,LocationDetailFragment.argsFor(location.id,location.name));}else if(item.value instanceof Voucher){Bundle args=new Bundle();args.putString("mode","voucher-detail");args.putLong("id",((Voucher)item.value).voucherId);Navigation.findNavController(requireView()).navigate(R.id.member3WorkspaceFragment,args);}}
     private void openTrip(Trip trip){Bundle args=new Bundle();args.putLong("id",trip.id);Navigation.findNavController(requireView()).navigate(R.id.tripDetailFragment,args);}
     private void toggleTripFavorite(Trip trip,int position){repo.favoriteTrip(trip.id,true,(message,error,stale)->{if(!isAdded())return;if(error!=null){status.setText(error);return;}tripItems.removeIf(item->item.id==trip.id);showTrips(null);});}
     private String safe(String value){return value==null||value.isBlank()?"Chưa có thông tin":value;}

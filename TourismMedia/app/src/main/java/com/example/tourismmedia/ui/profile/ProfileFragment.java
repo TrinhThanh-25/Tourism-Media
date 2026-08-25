@@ -58,6 +58,7 @@ public class ProfileFragment extends Fragment {
 
     private void load() {
         repo.profile((profile, error, stale) -> {
+            if (!viewActive()) return;
             if (profile == null) { toast(error == null ? "Không tải được hồ sơ" : error); return; }
             name.setText(profile.username);
             email.setText("@" + profile.username + " · Thành viên Explorer");
@@ -72,10 +73,10 @@ public class ProfileFragment extends Fragment {
             avatar.setVisibility(hasAvatar ? View.GONE : View.VISIBLE);
             if (hasAvatar) Glide.with(this).load(profile.avatar).centerCrop().error(R.drawable.bg_hero).into(avatarImage);
         });
-        repo.myTrips((data, error, stale) -> trips.setText(data.size() + "\nChuyến đi"));
-        repo.checkIns((data, error, stale) -> checkins.setText(data.size() + "\nCheck-in"));
-        repo.favoriteLocations((data, error, stale) -> savedLocations.setText(data.size() + " ›"));
-        repo.favoriteTrips((data, error, stale) -> savedTrips.setText(data.size() + " ›"));
+        repo.myTrips((data, error, stale) -> { if (viewActive()) trips.setText(data.size() + "\nChuyến đi"); });
+        repo.checkIns((data, error, stale) -> { if (viewActive()) checkins.setText(data.size() + "\nCheck-in"); });
+        repo.favoriteLocations((data, error, stale) -> { if (viewActive()) savedLocations.setText(data.size() + " ›"); });
+        repo.favoriteTrips((data, error, stale) -> { if (viewActive()) savedTrips.setText(data.size() + " ›"); });
     }
 
     private void collection(String mode) {
@@ -88,5 +89,6 @@ public class ProfileFragment extends Fragment {
         Navigation.findNavController(requireView()).navigate(R.id.member3WorkspaceFragment, args);
     }
 
-    private void toast(String message) { Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show(); }
+    private boolean viewActive() { return isAdded() && getView() != null; }
+    private void toast(String message) { if (viewActive()) Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show(); }
 }

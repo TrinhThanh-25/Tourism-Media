@@ -12,7 +12,6 @@
     <fragment android:id="@+id/profileFragment" android:name="com.example.tourismmedia.ui.profile.ProfileFragment" android:label="@string/nav_profile" />
     <!-- Member 1 - Home/Explore/Location -->
     <fragment android:id="@+id/locationDetailFragment" android:name="com.example.tourismmedia.ui.location.LocationDetailFragment" android:label="Place details" />
-    <fragment android:id="@+id/detailFragment" android:name="com.example.tourismmedia.ui.detail.DetailFragment" android:label="Details" />
     <fragment android:id="@+id/accountCollectionFragment" android:name="com.example.tourismmedia.ui.profile.AccountCollectionFragment" android:label="Account data" />
     <!-- Member 2 - Trips/Itinerary -->
     <fragment android:id="@+id/tripDetailFragment" android:name="com.example.tourismmedia.ui.trips.TripDetailFragment" android:label="Chi tiết chuyến đi" />

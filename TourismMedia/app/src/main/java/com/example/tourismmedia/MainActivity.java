@@ -62,8 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     /** Destinations that own the whole screen and hide the bottom bar. */
     private static boolean isFullScreenDestination(int destinationId) {
-        return destinationId == R.id.detailFragment
-                || destinationId == R.id.locationDetailFragment
+        return destinationId == R.id.locationDetailFragment
                 || destinationId == R.id.accountCollectionFragment
                 || destinationId == R.id.tripDetailFragment
                 || destinationId == R.id.tripWorkspaceFragment

@@ -117,23 +117,6 @@ public class AppRepository {
         });
     }
 
-    /**
-     * OAuth is not wired up yet, so the provider buttons sign in to a real backend
-     * demo account instead of faking a local-only session.
-     */
-    public void socialAccount(String provider, Result<AuthResponse> result) {
-        String handle = provider.toLowerCase(Locale.ROOT);
-        String email = handle + ".demo@tourismmedia.app";
-        String password = handle + "-demo-2026";
-        login(email, password, (data, error, sample) -> {
-            if (data != null) {
-                result.onResult(data, null, false);
-            } else {
-                register(handle + "_traveler", email, password, result);
-            }
-        });
-    }
-
     private void authenticate(Call<AuthResponse> call, String email, Result<AuthResponse> result) {
         call.enqueue(new Callback<>() {
             @Override
