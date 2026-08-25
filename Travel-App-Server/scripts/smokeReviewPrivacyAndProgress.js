@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
-import app from "../server.js";
-import db from "../db/connect.js";
-import { get, run } from "../db/queries.js";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const workDir = mkdtempSync(join(tmpdir(), "tourism-review-smoke-"));
+process.env.DB_PATH = join(workDir, "smoke.db");
+copyFileSync(new URL("../travel_app.template.db", import.meta.url), process.env.DB_PATH);
+
+// Import after DB_PATH is set because the database connection is created at module load time.
+const { default:app } = await import("../server.js");
+const { default:db } = await import("../db/connect.js");
+const { get,run } = await import("../db/queries.js");
 
 const port = Number(process.env.PORT || 3104);
 const base = `http://127.0.0.1:${port}`;
@@ -98,6 +107,9 @@ const server = app.listen(port, async () => {
     failed = true;
     console.error(error);
   } finally {
-    server.close(() => db.close(() => process.exit(failed ? 1 : 0)));
+    server.close(() => db.close(() => {
+      rmSync(workDir, { recursive:true, force:true });
+      process.exit(failed ? 1 : 0);
+    }));
   }
 });
