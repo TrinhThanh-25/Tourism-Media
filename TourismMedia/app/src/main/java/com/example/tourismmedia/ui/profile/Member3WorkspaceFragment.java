@@ -1,6 +1,5 @@
 package com.example.tourismmedia.ui.profile;
 
-import android.Manifest;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -22,7 +21,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
@@ -36,16 +34,17 @@ import com.example.tourismmedia.data.model.AppModels.Profile;
 import com.example.tourismmedia.data.model.AppModels.Reward;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
 import com.example.tourismmedia.ui.location.LocationDetailFragment;
+import com.example.tourismmedia.ui.common.BarcodeView;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class Member3WorkspaceFragment extends Fragment {
     private static final int INK = Color.rgb(23, 51, 43), MUTED = Color.rgb(113, 128, 120), FOREST = Color.rgb(18, 55, 42);
-    private static final String CHALLENGE_IMAGE = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/16/1158477/IMG_8725-2.jpg";
     private LinearLayout content, actions;
     private TextView title, subtitle;
     private MaterialButton primary, secondary, top;
@@ -61,13 +60,6 @@ public class Member3WorkspaceFragment extends Fragment {
                 try { requireContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
                 catch (SecurityException ignored) { }
                 if (avatarPreview != null) Glide.with(this).load(uri).centerCrop().into(avatarPreview);
-            });
-    private final ActivityResultLauncher<String[]> imagePermission = registerForActivityResult(
-            new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                boolean allowed = Boolean.TRUE.equals(result.get(Manifest.permission.READ_MEDIA_IMAGES))
-                        || Boolean.TRUE.equals(result.get(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED));
-                if (allowed) avatarPicker.launch(new String[]{"image/*"});
-                else toast("Cần quyền chia sẻ ảnh để chọn ảnh đại diện");
             });
 
     public Member3WorkspaceFragment() { super(R.layout.fragment_member3_workspace); }
@@ -122,8 +114,8 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void bindChallenge(Challenge info, Challenge progress) {
         ImageView hero = new ImageView(requireContext()); hero.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        String image = info.locations != null && !info.locations.isEmpty() ? info.locations.get(0).imageUrl : CHALLENGE_IMAGE;
-        Glide.with(this).load(image).centerCrop().placeholder(R.drawable.bg_hero).into(hero);
+        String image = info.locations != null && !info.locations.isEmpty() ? info.locations.get(0).imageUrl : null;
+        Glide.with(this).load(image).centerCrop().placeholder(R.drawable.bg_hero).error(R.drawable.bg_hero).into(hero);
         content.addView(hero, new LinearLayout.LayoutParams(-1, dp(210)));
         TextView name = text(info.name, 28, true); LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.setMargins(dp(4), dp(16), 0, dp(4)); content.addView(name, np);
         int target = progress.target > 0 ? progress.target : info.requiredCheckins;
@@ -175,7 +167,7 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void balanceCard(String label, int value, View.OnClickListener listener) {
         LinearLayout box = card(); box.setBackground(background(FOREST, 24)); box.setOrientation(LinearLayout.HORIZONTAL); box.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout labels = new LinearLayout(requireContext()); labels.setOrientation(LinearLayout.VERTICAL); TextView l = muted(label); l.setTextColor(Color.rgb(201,222,211)); labels.addView(l); TextView p = text(String.format("%,d", value), 32, true); p.setTextColor(Color.WHITE); labels.addView(p); box.addView(labels, new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout labels = new LinearLayout(requireContext()); labels.setOrientation(LinearLayout.VERTICAL); TextView l = muted(label); l.setTextColor(Color.rgb(201,222,211)); labels.addView(l); TextView p = text(String.format(Locale.getDefault(), "%,d", value), 32, true); p.setTextColor(Color.WHITE); labels.addView(p); box.addView(labels, new LinearLayout.LayoutParams(0,-2,1));
         if (listener != null) { MaterialButton button = new MaterialButton(requireContext()); button.setText("Đổi quà"); button.setTextColor(Color.rgb(58,43,19)); button.setBackgroundTintList(ColorStateList.valueOf(Color.rgb(255,184,77))); button.setOnClickListener(listener); box.addView(button); }
     }
 
@@ -190,7 +182,7 @@ public class Member3WorkspaceFragment extends Fragment {
     }
 
     private void redeemConfirm() {
-        header("Xác nhận đổi quà", "Kiểm tra trước khi tiếp tục"); repo.reward(id,(reward,error,stale)->{if(!viewActive())return;repo.points((balance,pointsError,sample)->{if(!viewActive())return;if(reward==null||balance==null){empty(error!=null?error:pointsError);return;}voucherCard(reward.name,reward.percent+"%","Hiệu lực sau khi đổi");LinearLayout box=card();stat(box,"Điểm hiện có",String.format("%,d",balance.points));stat(box,"Chi phí đổi","−"+reward.cost);stat(box,"Số dư sau khi đổi",String.format("%,d",balance.points-reward.cost));CheckBox agree=new CheckBox(requireContext());agree.setChecked(true);agree.setText("Tôi đã đọc và đồng ý với điều kiện sử dụng.");agree.setTextColor(MUTED);content.addView(agree);showActions("Quay lại","Xác nhận đổi thưởng");primary.setOnClickListener(v->{if(!agree.isChecked()){toast("Vui lòng đồng ý điều kiện sử dụng");return;}repo.redeem(id,(message,redeemError,s)->{if(!viewActive())return;toast(redeemError==null?"Đổi thưởng thành công":redeemError);if(redeemError==null)open("vouchers",0);});});});});
+        header("Xác nhận đổi quà", "Kiểm tra trước khi tiếp tục"); repo.reward(id,(reward,error,stale)->{if(!viewActive())return;repo.points((balance,pointsError,sample)->{if(!viewActive())return;if(reward==null||balance==null){empty(error!=null?error:pointsError);return;}voucherCard(reward.name,reward.percent+"%","Hiệu lực sau khi đổi");LinearLayout box=card();stat(box,"Điểm hiện có",String.format(Locale.getDefault(),"%,d",balance.points));stat(box,"Chi phí đổi","−"+reward.cost);stat(box,"Số dư sau khi đổi",String.format(Locale.getDefault(),"%,d",balance.points-reward.cost));CheckBox agree=new CheckBox(requireContext());agree.setChecked(true);agree.setText("Tôi đã đọc và đồng ý với điều kiện sử dụng.");agree.setTextColor(MUTED);content.addView(agree);showActions("Quay lại","Xác nhận đổi thưởng");primary.setOnClickListener(v->{if(!agree.isChecked()){toast("Vui lòng đồng ý điều kiện sử dụng");return;}repo.redeem(id,(message,redeemError,s)->{if(!viewActive())return;toast(redeemError==null?"Đổi thưởng thành công":redeemError);if(redeemError==null)open("vouchers",0);});});});});
     }
 
     private void points() {
@@ -241,7 +233,7 @@ public class Member3WorkspaceFragment extends Fragment {
                 tabs[i].setOnClickListener(v -> {
                     selectSegment(tabs, selected);
                     for (int index = 0; index < items.size(); index++) {
-                        String status = safe(items.get(index).status).toLowerCase();
+                        String status = safe(items.get(index).status).toLowerCase(Locale.ROOT);
                         boolean visible = selected == 0 ? status.equals("active") : selected == 1 ? status.equals("used") : status.equals("expired");
                         rows.get(index).setVisibility(visible ? View.VISIBLE : View.GONE);
                     }
@@ -254,12 +246,47 @@ public class Member3WorkspaceFragment extends Fragment {
     private LinearLayout voucherInventoryRow(Voucher voucher) {
         LinearLayout row = card(); row.setPadding(0,0,0,0); row.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout main = new LinearLayout(requireContext()); main.setOrientation(LinearLayout.VERTICAL); main.setPadding(dp(17),dp(15),dp(12),dp(15));
-        TextView status = text(voucher.status == null ? "ĐANG HOẠT ĐỘNG" : voucher.status.toUpperCase(),11,true); status.setTextColor(Color.rgb(47,107,80)); main.addView(status); main.addView(text(voucher.name,17,true)); main.addView(muted("Hết hạn "+date(voucher.expiresAt))); row.addView(main,new LinearLayout.LayoutParams(0,-2,1));
+        TextView status = text(voucher.status == null ? "ĐANG HOẠT ĐỘNG" : voucher.status.toUpperCase(Locale.ROOT),11,true); status.setTextColor(Color.rgb(47,107,80)); main.addView(status); main.addView(text(voucher.name,17,true)); main.addView(muted("Hết hạn "+date(voucher.expiresAt))); row.addView(main,new LinearLayout.LayoutParams(0,-2,1));
         TextView side = text(voucher.percent+"%\nOFF",18,true); side.setTextColor(Color.WHITE); side.setGravity(Gravity.CENTER); side.setBackgroundColor(FOREST); row.addView(side,new LinearLayout.LayoutParams(dp(82),-1));
         row.setOnClickListener(v->open("voucher-detail",voucher.voucherId));
         return row;
     }
-    private void voucherDetail(){header("Chi tiết voucher","Sẵn sàng để sử dụng");repo.vouchers((items,error,stale)->{if(!viewActive())return;Voucher found=null;for(Voucher voucher:items)if(voucher.voucherId==id)found=voucher;if(found==null){empty(error==null?"Không tìm thấy voucher":error);return;}Voucher voucher=found;TextView icon=text("🎟",42,false);icon.setGravity(Gravity.CENTER);LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(90),dp(90));ip.gravity=Gravity.CENTER_HORIZONTAL;content.addView(icon,ip);TextView name=text(voucher.name,24,true);name.setGravity(Gravity.CENTER);content.addView(name);LinearLayout code=card();TextView label=muted("MÃ VOUCHER");label.setGravity(Gravity.CENTER);code.addView(label);TextView codeValue=text(voucher.code,24,true);codeValue.setGravity(Gravity.CENTER);codeValue.setLetterSpacing(.08f);code.addView(codeValue);LinearLayout info=card();stat(info,"Ngày đổi",date(voucher.createdAt));stat(info,"Hết hạn",date(voucher.expiresAt));stat(info,"Trạng thái",safe(voucher.status));showActions("Quay lại","Sử dụng voucher");primary.setEnabled("active".equalsIgnoreCase(voucher.status));primary.setOnClickListener(v->repo.useVoucher(voucher.voucherId,(message,useError,s)->{if(!viewActive())return;toast(useError==null?"Đã sử dụng voucher":useError);if(useError==null)Navigation.findNavController(requireView()).navigateUp();}));});}
+    private void voucherDetail() {
+        header("Chi tiết voucher", "Mã dùng để trình diễn");
+        repo.vouchers((items, error, stale) -> {
+            if (!viewActive()) return;
+            Voucher found = null;
+            for (Voucher voucher : items) if (voucher.voucherId == id) found = voucher;
+            if (found == null) { empty(error == null ? "Không tìm thấy voucher" : error); return; }
+            Voucher voucher = found;
+            TextView icon = text("🎟",42,false);
+            icon.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(90),dp(90));
+            iconParams.gravity = Gravity.CENTER_HORIZONTAL;
+            content.addView(icon,iconParams);
+            TextView name = text(voucher.name,24,true);
+            name.setGravity(Gravity.CENTER);
+            content.addView(name);
+
+            LinearLayout info = card();
+            stat(info,"Ngày đổi",date(voucher.createdAt));
+            stat(info,"Hết hạn",date(voucher.expiresAt));
+            stat(info,"Trạng thái",safe(voucher.status));
+
+            LinearLayout barcodeCard = card();
+            TextView barcodeTitle = text("MÃ VẠCH VOUCHER",14,true);
+            barcodeTitle.setGravity(Gravity.CENTER);
+            barcodeCard.addView(barcodeTitle);
+            BarcodeView barcode = new BarcodeView(requireContext());
+            barcode.setCode(voucher.code);
+            LinearLayout.LayoutParams barcodeParams = new LinearLayout.LayoutParams(-1,dp(145));
+            barcodeParams.setMargins(0,dp(12),0,0);
+            barcodeCard.addView(barcode,barcodeParams);
+            TextView note = muted("Mã vạch được tạo từ mã voucher thật và chỉ dùng để xem khi demo.");
+            note.setGravity(Gravity.CENTER);
+            barcodeCard.addView(note);
+        });
+    }
 
     private void editProfile() {
         header("Chỉnh sửa hồ sơ", "Thông tin hiển thị trong cộng đồng");
@@ -280,21 +307,46 @@ public class Member3WorkspaceFragment extends Fragment {
             EditText gender=field(form,"Giới tính (male/female/other)",profile.gender,false);
             MaterialButton password=new MaterialButton(requireContext()); password.setText("⌘  Đổi mật khẩu  ›"); password.setOnClickListener(v->open("change-password",0)); content.addView(password,new LinearLayout.LayoutParams(-1,dp(54)));
             showActions("Hủy","Lưu thay đổi");
-            primary.setOnClickListener(v->{Map<String,String>body=new HashMap<>(); body.put("username",username.getText().toString().trim()); body.put("email",email.getText().toString().trim()); body.put("phone",phone.getText().toString().trim()); body.put("dob",dob.getText().toString().trim()); body.put("gender",gender.getText().toString().trim()); if(selectedAvatar!=null)body.put("avatar_url",selectedAvatar.toString()); repo.updateProfile(body,(message,updateError,s)->{if(!viewActive())return;toast(updateError==null?message:updateError);if(updateError==null)Navigation.findNavController(requireView()).navigateUp();});});
+            primary.setOnClickListener(v -> {
+                Map<String,String> body = new HashMap<>();
+                body.put("username", username.getText().toString().trim());
+                body.put("email", email.getText().toString().trim());
+                body.put("phone", phone.getText().toString().trim());
+                body.put("dob", dob.getText().toString().trim());
+                body.put("gender", gender.getText().toString().trim());
+                if (selectedAvatar == null) {
+                    updateProfile(body);
+                    return;
+                }
+                primary.setEnabled(false);
+                repo.uploadImage(selectedAvatar, (url, uploadError, ignored) -> {
+                    if (!viewActive()) return;
+                    primary.setEnabled(true);
+                    if (uploadError != null || url == null) {
+                        toast(uploadError == null ? "Không thể tải ảnh lên" : uploadError);
+                        return;
+                    }
+                    body.put("avatar_url", url);
+                    updateProfile(body);
+                });
+            });
         });
     }
 
     private void requestAvatarPermission() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            avatarPicker.launch(new String[]{"image/*"});
-        } else {
-            imagePermission.launch(new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED});
-        }
+        avatarPicker.launch(new String[]{"image/*"});
+    }
+
+    private void updateProfile(Map<String,String> body) {
+        repo.updateProfile(body, (message, error, ignored) -> {
+            if (!viewActive()) return;
+            toast(error == null ? message : error);
+            if (error == null) Navigation.findNavController(requireView()).navigateUp();
+        });
     }
     private void changePassword(){header("Đổi mật khẩu","Bảo vệ tài khoản của bạn");section("Mật khẩu mới");content.addView(muted("Nên sử dụng ít nhất 8 ký tự, gồm chữ và số."));LinearLayout form=card();EditText current=field(form,"Mật khẩu hiện tại","",true);EditText next=field(form,"Mật khẩu mới","",true);EditText confirm=field(form,"Xác nhận mật khẩu","",true);TextView rule=muted("✓ Ít nhất 8 ký tự\n○ Có chữ hoa, chữ thường và số");form.addView(rule);showActions("Hủy","Cập nhật mật khẩu");primary.setOnClickListener(v->{String password=next.getText().toString();if(password.length()<8){next.setError("Cần ít nhất 8 ký tự");return;}if(!password.equals(confirm.getText().toString())){confirm.setError("Mật khẩu chưa khớp");return;}repo.changePassword(current.getText().toString(),password,(message,error,s)->{if(!viewActive())return;toast(error==null?"Đổi mật khẩu thành công":error);if(error==null)Navigation.findNavController(requireView()).navigateUp();});});}
 
-    private EditText field(LinearLayout parent,String label,String value,boolean password){TextView caption=text(label,13,true);caption.setTextColor(MUTED);parent.addView(caption);EditText input=new EditText(requireContext());input.setText(value==null?"":value);input.setHint("Nhập "+label.toLowerCase());input.setSingleLine(true);input.setTextColor(INK);input.setHintTextColor(Color.rgb(160,170,164));GradientDrawable bg=background(Color.WHITE,14);bg.setStroke(dp(1),Color.rgb(228,232,227));input.setBackground(bg);input.setPadding(dp(13),0,dp(13),0);if(password)input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.setMargins(0,dp(6),0,dp(14));parent.addView(input,p);return input;}
+    private EditText field(LinearLayout parent,String label,String value,boolean password){TextView caption=text(label,13,true);caption.setTextColor(MUTED);parent.addView(caption);EditText input=new EditText(requireContext());input.setText(value==null?"":value);input.setHint("Nhập "+label.toLowerCase(Locale.ROOT));input.setSingleLine(true);input.setTextColor(INK);input.setHintTextColor(Color.rgb(160,170,164));GradientDrawable bg=background(Color.WHITE,14);bg.setStroke(dp(1),Color.rgb(228,232,227));input.setBackground(bg);input.setPadding(dp(13),0,dp(13),0);if(password)input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.setMargins(0,dp(6),0,dp(14));parent.addView(input,p);return input;}
     private TextView[] segmented(String... labels) {
         LinearLayout row = new LinearLayout(requireContext()); row.setPadding(dp(4),dp(4),dp(4),dp(4)); row.setBackground(background(Color.rgb(233,238,233),15));
         TextView[] tabs = new TextView[labels.length];

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tourismmedia.R;
 import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Challenge;
+import java.util.Locale;
 
 public class ChallengesFragment extends Fragment {
     private AppRepository repo;
@@ -28,7 +29,7 @@ public class ChallengesFragment extends Fragment {
             else repo.challenges((publicData, publicError, sample) -> adapter.submit(publicData));
         });
         repo.points((balance, error, stale) -> {
-            if (balance != null) ((TextView) view.findViewById(R.id.challenge_points)).setText(String.format("%,d", balance.points));
+            if (balance != null) ((TextView) view.findViewById(R.id.challenge_points)).setText(String.format(Locale.getDefault(), "%,d", balance.points));
         });
         view.findViewById(R.id.open_rewards).setOnClickListener(v -> open("rewards", 0));
         view.findViewById(R.id.challenge_trophy).setOnClickListener(v -> open("rewards", 0));

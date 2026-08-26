@@ -15,9 +15,9 @@ import com.bumptech.glide.Glide;
 import com.example.tourismmedia.R;
 import com.example.tourismmedia.auth.AuthActivity;
 import com.example.tourismmedia.data.AppRepository;
+import java.util.Locale;
 
 public class ProfileFragment extends Fragment {
-    private static final String COVER = "https://www.homepaylater.vn/static/88357cc22dcb6460df003e4ff1dec446/9d72c/1_khu_du_lich_binh_quoi_2_mang_den_khong_gian_thu_gian_hoa_minh_vao_thien_nhien_299b8d9efd.jpg";
     private AppRepository repo;
     private TextView name, email, points, avatar, trips, checkins, savedLocations, savedTrips;
     private ImageView avatarImage;
@@ -26,8 +26,7 @@ public class ProfileFragment extends Fragment {
 
     @Override public void onViewCreated(@NonNull View view, Bundle state) {
         repo = AppRepository.get(requireContext());
-        Glide.with(this).load(COVER).centerCrop().placeholder(R.drawable.bg_hero).error(R.drawable.bg_hero)
-                .into((ImageView) view.findViewById(R.id.profile_cover));
+        ((ImageView) view.findViewById(R.id.profile_cover)).setImageResource(R.drawable.bg_hero);
         name = view.findViewById(R.id.profile_name);
         email = view.findViewById(R.id.profile_email);
         points = view.findViewById(R.id.profile_points);
@@ -62,12 +61,12 @@ public class ProfileFragment extends Fragment {
             if (profile == null) { toast(error == null ? "Không tải được hồ sơ" : error); return; }
             name.setText(profile.username);
             email.setText("@" + profile.username + " · Thành viên Explorer");
-            points.setText(String.format("%,d\nĐiểm", profile.points));
+            points.setText(String.format(Locale.getDefault(), "%,d\nĐiểm", profile.points));
             String username = profile.username == null || profile.username.isBlank() ? "Traveler" : profile.username.trim();
             String[] words = username.split(" ");
             String initials = words[0].substring(0, 1);
             if (words.length > 1) initials += words[words.length - 1].substring(0, 1);
-            avatar.setText(initials.toUpperCase());
+            avatar.setText(initials.toUpperCase(Locale.ROOT));
             boolean hasAvatar = profile.avatar != null && !profile.avatar.isBlank();
             avatarImage.setVisibility(hasAvatar ? View.VISIBLE : View.GONE);
             avatar.setVisibility(hasAvatar ? View.GONE : View.VISIBLE);
