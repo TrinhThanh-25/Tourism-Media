@@ -19,8 +19,10 @@ Schema hiện tại nằm trong `db/schema.js`. Các thay đổi dữ liệu n�
 `db/migrations.js` và được ghi nhận ở bảng `schema_migrations`, nên mỗi migration
 chỉ chạy một lần.
 
-Trong production bắt buộc cấu hình `JWT_SECRET`. Đặt `ADMIN_EMAILS` thành danh
-sách email phân cách bằng dấu phẩy để cấp role admin khi khởi động.
+Mọi môi trường đều bắt buộc cấu hình `JWT_SECRET`. Đặt `ADMIN_EMAILS` thành danh
+sách email phân cách bằng dấu phẩy để cấp role admin khi khởi động. Ảnh upload
+được lưu trong `UPLOAD_DIR`; `PUBLIC_BASE_URL` phải là địa chỉ mà emulator hoặc
+điện thoại có thể truy cập để URL ảnh dùng được trên các client khác.
 
 ## Xác thực và phân quyền
 
@@ -35,7 +37,8 @@ Gửi access token bằng header `Authorization: Bearer <token>`.
 
 - `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`.
 - `/api/me`: đọc/cập nhật hồ sơ cá nhân (bao gồm `avatar_url`).
-- `/api/me/password`, `/api/me/locations`.
+- `/api/me/password`, `/api/me/locations`, `/api/me/activity/location-read`.
+- `/api/uploads/images`: upload JPEG/PNG/WebP tối đa 8 MB, yêu cầu JWT.
 - `/api/me/challenges`, `/api/me/points`, `/api/me/point-transactions`.
 - `/api/me/rewards`, `/api/me/rewards/:rewardId/redeem`.
 - `/api/me/vouchers`, `/api/me/vouchers/:voucherId/use`.

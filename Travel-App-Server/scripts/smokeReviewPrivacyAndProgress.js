@@ -5,6 +5,9 @@ import { join } from "node:path";
 
 const workDir = mkdtempSync(join(tmpdir(), "tourism-review-smoke-"));
 process.env.DB_PATH = join(workDir, "smoke.db");
+process.env.JWT_SECRET = "smoke-test-secret-not-for-runtime";
+process.env.NODE_ENV = "test";
+process.env.PORT = "3104";
 copyFileSync(new URL("../travel_app.template.db", import.meta.url), process.env.DB_PATH);
 
 // Import after DB_PATH is set because the database connection is created at module load time.

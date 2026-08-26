@@ -56,6 +56,7 @@ async function calculateProgress(challenge, userId, queries = { get }, membershi
   if (target === "level_points" || challenge.challenge_type === "level") {
     return (await queries.get("SELECT COALESCE(total_point,0) AS value FROM users WHERE id=?", [userId]))?.value || 0;
   }
+  if (!membership) return 0;
   if (target === "distinct_locations" || challenge.challenge_type === "collection" && target !== "distinct_categories") {
     return (await queries.get(
       `SELECT COUNT(DISTINCT location_id) AS value FROM user_location WHERE user_id=?${checkinWindow.sql}`,
@@ -103,6 +104,13 @@ async function calculateProgress(challenge, userId, queries = { get }, membershi
       [userId,`${criteria.item_prefix || ""}%`,...activityWindow.params]
     ))?.value || 0;
   }
+  if (target === "location_info_reads") {
+    return (await queries.get(
+      `SELECT COUNT(DISTINCT target_id) AS value FROM user_activity
+       WHERE user_id=? AND type='location_info_read'${activityWindow.sql}`,
+      [userId,...activityWindow.params]
+    ))?.value || 0;
+  }
 
   const activityTypes = {
     photo_upload:"photo_upload", read_tip:"read_tip", watch_video:"watch_video",
@@ -121,16 +129,13 @@ async function calculateProgress(challenge, userId, queries = { get }, membershi
   ))?.value || 0;
 }
 
-export async function buildChallengeProgress(challenge, userId, queries = { get }) {
-  const membership = await queries.get(
-    "SELECT status,joined_at,completed_at FROM user_challenge WHERE user_id=? AND challenge_id=?",
-    [userId,challenge.id]
-  );
-  const progress = await calculateProgress(challenge,userId,queries,membership);
-  const target = targetFor(challenge);
-  const now = Date.now();
-  const active = (!challenge.start_date || new Date(challenge.start_date).getTime() <= now)
+function isChallengeActive(challenge, now = Date.now()) {
+  return (!challenge.start_date || new Date(challenge.start_date).getTime() <= now)
     && (!challenge.end_date || new Date(challenge.end_date).getTime() >= now);
+}
+
+function progressResponse(challenge, membership, progress) {
+  const target = targetFor(challenge);
   return {
     ...challenge,
     criteria:parseCriteria(challenge.criteria),
@@ -142,14 +147,101 @@ export async function buildChallengeProgress(challenge, userId, queries = { get 
     status:membership?.status || "not_started",
     joined_at:membership?.joined_at || null,
     completed_at:membership?.completed_at || null,
-    active
+    active:isChallengeActive(challenge)
   };
+}
+
+function inWindow(timestamp, window) {
+  const value = toUtcIso(timestamp);
+  if (!value) return false;
+  return (!window.from || value >= window.from) && (!window.to || value <= window.to);
+}
+
+function snapshotProgress(challenge, membership, snapshot) {
+  const criteria = parseCriteria(challenge.criteria);
+  const target = criteria.target;
+  if (target === "level_points" || challenge.challenge_type === "level") return snapshot.totalPoint;
+  if (!membership) return 0;
+  const window = progressWindow(challenge,membership);
+  const locationIds = new Set(Array.isArray(criteria.location_ids)
+    ? criteria.location_ids.map(Number).filter(Boolean) : []);
+  const checkins = snapshot.checkins.filter(item => inWindow(item.checked_in_at,window)
+    && (!locationIds.size || locationIds.has(Number(item.location_id))));
+  const reviews = snapshot.reviews.filter(item => inWindow(item.created_at,window)
+    && (!locationIds.size || locationIds.has(Number(item.location_id))));
+  const activities = snapshot.activities.filter(item => inWindow(item.created_at,window));
+
+  if (target === "distinct_locations" || challenge.challenge_type === "collection" && target !== "distinct_categories") {
+    return new Set(checkins.map(item => Number(item.location_id))).size;
+  }
+  if (target === "distinct_categories") {
+    return new Set(checkins.map(item => item.category).filter(Boolean)).size;
+  }
+  if (target === "location_reviews" || target === "reviews_written") return reviews.length;
+  if (target === "checkins" || challenge.challenge_type === "checkin") {
+    const distinct = criteria.count_distinct !== undefined
+      ? Boolean(criteria.count_distinct)
+      : !locationIds.size || Number(criteria.count ?? 0) <= locationIds.size;
+    return distinct ? new Set(checkins.map(item => Number(item.location_id))).size : checkins.length;
+  }
+  if (target === "distance_meters") {
+    return activities.filter(item => item.type === "distance_session")
+      .reduce((sum,item) => sum + Number(parseCriteria(item.meta_json).meters || 0),0);
+  }
+  if (target === "collect_item") {
+    return new Set(activities.filter(item => item.type === "collect_item")
+      .map(item => parseCriteria(item.meta_json).item_key)
+      .filter(key => key && String(key).startsWith(criteria.item_prefix || ""))).size;
+  }
+  if (target === "location_info_reads") {
+    return new Set(activities.filter(item => item.type === "location_info_read")
+      .map(item => Number(item.target_id)).filter(Boolean)).size;
+  }
+  const activityTypes = {
+    photo_upload:"photo_upload", read_tip:"read_tip", watch_video:"watch_video",
+    location_info_reads:"location_info_read", quiz_correct:"quiz_correct",
+    invites_completed:"invite_completed", shares:"share", reward_redemptions:"reward_redeemed"
+  };
+  if (activityTypes[target]) return activities.filter(item => item.type === activityTypes[target]).length;
+  return Number(membership.progress) || 0;
+}
+
+// Constant-size batch for the challenge list: four queries regardless of challenge count.
+export async function buildChallengesProgress(challenges, userId) {
+  const [checkins,reviews,activities,user] = await Promise.all([
+    all(`SELECT checkin.location_id,checkin.checked_in_at,location.category
+         FROM user_location checkin LEFT JOIN locations location ON location.id=checkin.location_id
+         WHERE checkin.user_id=?`, [userId]),
+    all("SELECT location_id,created_at FROM location_reviews WHERE user_id=?", [userId]),
+    all("SELECT type,target_id,meta_json,created_at FROM user_activity WHERE user_id=?", [userId]),
+    get("SELECT COALESCE(total_point,0) AS total_point FROM users WHERE id=?", [userId])
+  ]);
+  const snapshot = {checkins,reviews,activities,totalPoint:Number(user?.total_point) || 0};
+  return challenges.map(challenge => {
+    const joined = Boolean(challenge.joined_at
+      || challenge.status && challenge.status !== "not_started");
+    const membership = joined ? {
+      status:challenge.status, progress:challenge.progress,
+      joined_at:challenge.joined_at, completed_at:challenge.completed_at
+    } : null;
+    return progressResponse(challenge,membership,snapshotProgress(challenge,membership,snapshot));
+  });
+}
+
+export async function buildChallengeProgress(challenge, userId, queries = { get }) {
+  const membership = await queries.get(
+    "SELECT status,joined_at,completed_at FROM user_challenge WHERE user_id=? AND challenge_id=?",
+    [userId,challenge.id]
+  );
+  const progress = await calculateProgress(challenge,userId,queries,membership);
+  return progressResponse(challenge,membership,progress);
 }
 
 export async function getAllChallenges(_req, res) {
   try {
     const rows = await all("SELECT * FROM challenges ORDER BY id");
-    res.json(rows.map(row => ({...row,criteria:parseCriteria(row.criteria)})));
+    res.json(rows.filter(row => isChallengeActive(row))
+      .map(row => ({...row,criteria:parseCriteria(row.criteria),active:true})));
   } catch { res.status(500).json({error:"Could not load challenges"}); }
 }
 

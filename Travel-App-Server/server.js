@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { UPLOAD_DIR } from "./config/uploads.js";
 
 // Load .env relative to this server file so running node from another cwd still
 // picks up the backend `.env` (ensures DB_PATH and other settings are correct).
@@ -26,7 +27,8 @@ const [
 	reviewRoutesModule,
 	tripReviewRoutesModule,
 	pointsRoutesModule,
-	tripsRoutesModule
+  tripsRoutesModule,
+  uploadRoutesModule
 ] = await Promise.all([
   import('./routes/locationRoutes.js'),
   import('./routes/challengeRoutes.js'),
@@ -37,7 +39,8 @@ const [
 	import('./routes/locationReviewRoutes.js'),
 	import('./routes/tripReviewRoutes.js'),
 	import('./routes/pointsRoutes.js'),
-	import('./routes/tripsRoutes.js')
+	import('./routes/tripsRoutes.js'),
+  import('./routes/uploadRoutes.js')
 ]);
 
 const locationRoutes = locationRoutesModule.default;
@@ -50,6 +53,7 @@ const reviewRoutes = reviewRoutesModule.default;
 const tripReviewRoutes = tripReviewRoutesModule.default;
 const pointsRoutes = pointsRoutesModule.default;
 const tripsRoutes = tripsRoutesModule.default;
+const uploadRoutes = uploadRoutesModule.default;
 
 const app = express();
 // limit request body size to avoid large payload attacks
@@ -71,6 +75,9 @@ app.use(globalLimiter);
 // Example: CORS_ORIGIN=http://localhost:5173
 const corsOrigin = process.env.CORS_ORIGIN || "*";
 app.use(cors({ origin: corsOrigin }));
+app.use("/uploads", express.static(UPLOAD_DIR, {
+	setHeaders:response => response.setHeader("Cross-Origin-Resource-Policy","cross-origin")
+}));
 
 // Định nghĩa các nhóm API
 app.use("/api/locations", locationRoutes);
@@ -85,6 +92,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/trip-reviews", tripReviewRoutes);
 app.use("/api/admin/points", pointsRoutes);
 app.use("/api/trips", tripsRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // lightweight API root/status endpoint so visiting /api returns useful info
 app.get('/api', (req, res) => {

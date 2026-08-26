@@ -3,7 +3,7 @@ import { authenticateJWT } from "../middleware/auth.js";
 import { validateSchema } from "../middleware/validate.js";
 import { me } from "../controllers/authController.js";
 import { updateUserProfile, updateUserPassword,
-  getCheckedInLocation, checkInLocation, getUserChallenges } from "../controllers/userController.js";
+  getCheckedInLocation, checkInLocation, recordLocationRead, getUserChallenges } from "../controllers/userController.js";
 import { getMyPoints, listTransactionsForUser } from "../controllers/pointsController.js";
 import { getEligibleCatalog, redeemReward, getUserInventory, useUserReward } from "../controllers/rewardController.js";
 import { updateUserProfileSchema, updatePasswordSchema, checkInSchema } from "../validators/user.js";
@@ -15,6 +15,7 @@ router.patch("/", validateSchema(updateUserProfileSchema), updateUserProfile);
 router.post("/password", validateSchema(updatePasswordSchema), updateUserPassword);
 router.get("/locations", getCheckedInLocation);
 router.post("/locations", validateSchema(checkInSchema), checkInLocation);
+router.post("/activity/location-read", validateSchema(checkInSchema), recordLocationRead);
 router.get("/challenges", getUserChallenges);
 router.get("/points", getMyPoints);
 router.get("/point-transactions", listTransactionsForUser);

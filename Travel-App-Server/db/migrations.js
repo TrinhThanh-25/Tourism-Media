@@ -7,6 +7,16 @@ const execute = (db, sql, params = []) => new Promise((resolve, reject) => {
   db.run(sql, params, error => error ? reject(error) : resolve());
 });
 
+const tableColumns = (db, table) => new Promise((resolve, reject) => {
+  db.all(`PRAGMA table_info(${table})`, (error, rows) => error ? reject(error) : resolve(rows));
+});
+
+const addColumnIfMissing = async (db, table, column, definition) => {
+  if (!(await tableColumns(db,table)).some(item => item.name === column)) {
+    await execute(db, `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+};
+
 const migrations = [
   {
     version: 1,
@@ -69,6 +79,7 @@ const migrations = [
         ["trip_reviews", "created_at"]
       ];
       for (const [table, column] of fields) {
+        if (!(await tableColumns(db,table)).some(item => item.name === column)) continue;
         await execute(db, `UPDATE ${table} SET ${column}=replace(${column},' ','T')||'Z'
           WHERE ${column} IS NOT NULL AND instr(${column},'T')=0`);
       }
@@ -88,6 +99,18 @@ const migrations = [
     up: async db => {
       await execute(db, `UPDATE user_reward SET expires_at=replace(expires_at,' ','T')||'Z'
         WHERE expires_at IS NOT NULL AND instr(expires_at,'T')=0 AND length(expires_at)>10`);
+    }
+  },
+  {
+    version: 7,
+    name: "add_application_columns",
+    up: async db => {
+      await addColumnIfMissing(db,"users","role","TEXT NOT NULL DEFAULT 'user'");
+      await addColumnIfMissing(db,"points_transactions","reward_id","INTEGER REFERENCES rewards(id) ON DELETE SET NULL");
+      await addColumnIfMissing(db,"user_reward","created_at","TEXT");
+      await addColumnIfMissing(db,"user_challenge","progress","INTEGER DEFAULT 0");
+      await addColumnIfMissing(db,"user_challenge","completed_at","TEXT");
+      await addColumnIfMissing(db,"trips","published_at","TEXT");
     }
   }
 ];

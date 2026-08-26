@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { all, get, run } from "../db/queries.js";
 import { BCRYPT_ROUNDS } from "../config/auth.js";
-import { buildChallengeProgress } from "./challengeController.js";
+import { buildChallengesProgress } from "./challengeController.js";
 
 export const updateUserProfile = async (req, res) => {
   const allowed = ["username", "email", "avatar_url", "dob", "gender", "phone"];
@@ -63,6 +63,19 @@ export const checkInLocation = async (req, res) => {
   } catch { res.status(500).json({ error:"Check-in failed" }); }
 };
 
+export const recordLocationRead = async (req, res) => {
+  try {
+    const location = await get("SELECT id FROM locations WHERE id=?", [req.body.location_id]);
+    if (!location) return res.status(404).json({error:"Location not found"});
+    await run(
+      `INSERT INTO user_activity (user_id,type,target_id,created_at)
+       VALUES (?,'location_info_read',?,strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+      [req.user.id,location.id]
+    );
+    res.status(201).json({message:"Location reading recorded"});
+  } catch { res.status(500).json({error:"Could not record location reading"}); }
+};
+
 export const getUserChallenges = async (req, res) => {
   try {
     const challenges = await all(
@@ -70,13 +83,14 @@ export const getUserChallenges = async (req, res) => {
        uc.joined_at,uc.completed_at FROM challenges c LEFT JOIN user_challenge uc
        ON c.id=uc.challenge_id AND uc.user_id=? ORDER BY c.id`, [req.user.id]
     );
-    res.json(await Promise.all(challenges.map(async challenge => {
-      const result = await buildChallengeProgress(challenge,req.user.id);
+    const progressItems = await buildChallengesProgress(challenges,req.user.id);
+    res.json(progressItems.map((result,index) => {
+      const challenge = challenges[index];
       return {
         ...result,
         status: challenge.status === "claimed" ? "claimed"
           : result.joined && result.eligible ? "eligible" : challenge.status
       };
-    })));
+    }));
   } catch { res.status(500).json({ error:"Could not load challenges" }); }
 };
