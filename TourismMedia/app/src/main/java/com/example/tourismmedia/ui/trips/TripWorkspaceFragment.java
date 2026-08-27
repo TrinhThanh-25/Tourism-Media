@@ -1,6 +1,5 @@
 package com.example.tourismmedia.ui.trips;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -27,7 +26,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -78,13 +76,6 @@ public class TripWorkspaceFragment extends Fragment {
                 try { requireContext().getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); }
                 catch (SecurityException ignored) { }
                 if (coverPreview != null) Glide.with(this).load(uri).centerCrop().into(coverPreview);
-            });
-    private final ActivityResultLauncher<String[]> imagePermission = registerForActivityResult(
-            new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                boolean allowed = Boolean.TRUE.equals(result.get(Manifest.permission.READ_MEDIA_IMAGES))
-                        || Boolean.TRUE.equals(result.get(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED));
-                if (allowed) coverPicker.launch(new String[]{"image/*"});
-                else Toast.makeText(requireContext(), "Cần quyền chia sẻ ảnh để chọn ảnh chuyến đi", Toast.LENGTH_LONG).show();
             });
 
     public TripWorkspaceFragment() {
@@ -185,7 +176,7 @@ public class TripWorkspaceFragment extends Fragment {
 
         EditText field = new EditText(requireContext());
         field.setText(value == null ? "" : value);
-        field.setHint("Nhập " + label.toLowerCase());
+        field.setHint("Nhập " + label.toLowerCase(Locale.ROOT));
         field.setTextSize(15);
         field.setTextColor(INK);
         field.setHintTextColor(Color.rgb(160, 170, 164));
@@ -329,8 +320,28 @@ public class TripWorkspaceFragment extends Fragment {
         body.put("estimate_price", number(price));
         body.put("total_time", number(duration));
         body.put("key_highlight", highlight.getText().toString().trim());
-        if (selectedCover != null) body.put("url_image", selectedCover.toString());
         if (!editing) body.put("locations", new ArrayList<>());
+        if (selectedCover == null) {
+            persistTrip(editing, publishAfterCreate, body);
+            return;
+        }
+        primary.setEnabled(false);
+        secondary.setEnabled(false);
+        repo.uploadImage(selectedCover, (url, uploadError, ignored) -> {
+            if (!viewActive()) return;
+            primary.setEnabled(true);
+            secondary.setEnabled(true);
+            if (uploadError != null || url == null) {
+                Toast.makeText(requireContext(), uploadError == null
+                        ? "Không thể tải ảnh lên" : uploadError, Toast.LENGTH_LONG).show();
+                return;
+            }
+            body.put("url_image", url);
+            persistTrip(editing, publishAfterCreate, body);
+        });
+    }
+
+    private void persistTrip(boolean editing, boolean publishAfterCreate, Map<String, Object> body) {
         repo.saveTrip(editing ? id : null, body, (item, error, stale) -> {
             if (!viewActive()) return;
             if (error != null || item == null) {
@@ -358,12 +369,7 @@ public class TripWorkspaceFragment extends Fragment {
     }
 
     private void requestCoverPermission() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            coverPicker.launch(new String[]{"image/*"});
-        } else {
-            imagePermission.launch(new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED});
-        }
+        coverPicker.launch(new String[]{"image/*"});
     }
 
     private MaterialButton chip(String label, LinearLayout row, boolean selected) {
@@ -454,7 +460,7 @@ public class TripWorkspaceFragment extends Fragment {
         panel.addView(budgetValue);
         budget.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar seekBar, int value, boolean fromUser) {
-                budgetValue.setText(String.format("%,dđ", value));
+                budgetValue.setText(String.format(Locale.getDefault(), "%,dđ", value));
             }
             public void onStartTrackingTouch(SeekBar seekBar) { }
             public void onStopTrackingTouch(SeekBar seekBar) { }
@@ -534,7 +540,7 @@ public class TripWorkspaceFragment extends Fragment {
                 LinearLayout itemRow = row();
                 itemRow.setBackgroundColor(Color.TRANSPARENT);
                 TextView time = text(location.time == null || location.time.isBlank()
-                        ? String.format("%02d", indexValue) : location.time, 13, true);
+                        ? String.format(Locale.ROOT, "%02d", indexValue) : location.time, 13, true);
                 indexValue++;
                 time.setTextColor(Color.rgb(47, 107, 80));
                 itemRow.addView(time, new LinearLayout.LayoutParams(dp(52), -2));

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 public class TripCardAdapter extends RecyclerView.Adapter<TripCardAdapter.Holder> {
     public interface Listener { void click(Trip trip); }
@@ -42,9 +43,11 @@ public class TripCardAdapter extends RecyclerView.Adapter<TripCardAdapter.Holder
     public void setOwnerMode(boolean ownerMode) { this.ownerMode = ownerMode; }
 
     public void submit(List<Trip> next) {
+        int oldSize = items.size();
         items.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
         items.addAll(next);
-        notifyDataSetChanged();
+        if (!items.isEmpty()) notifyItemRangeInserted(0, items.size());
     }
 
     @NonNull @Override public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -55,7 +58,7 @@ public class TripCardAdapter extends RecyclerView.Adapter<TripCardAdapter.Holder
         Trip trip = items.get(position);
         holder.title.setText(trip.title);
         holder.overlay.setText((trip.highlight == null || trip.highlight.isBlank() ? "Hành trình nổi bật" : trip.highlight) + " · " + time(trip.totalTime));
-        holder.meta.setText("Dự kiến " + String.format("%,dđ", trip.estimatedPrice) + " · " + time(trip.totalTime));
+        holder.meta.setText("Dự kiến " + String.format(Locale.getDefault(), "%,dđ", trip.estimatedPrice) + " · " + time(trip.totalTime));
         holder.rating.setText("★ " + trip.rating + " (" + trip.reviewCount + ")");
         holder.status.setText(trip.published == 1 ? "Đã xuất bản" : "Riêng tư");
         holder.author.setText("Đăng bởi " + safe(trip.authorUsername, "Traveler") + " · " + relativeTime(trip.publishedAt));

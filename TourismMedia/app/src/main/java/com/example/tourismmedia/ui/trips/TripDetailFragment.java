@@ -22,6 +22,7 @@ import com.example.tourismmedia.ui.location.LocationDetailFragment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class TripDetailFragment extends Fragment {
     private long id;
@@ -66,7 +67,7 @@ public class TripDetailFragment extends Fragment {
             ((TextView)view.findViewById(R.id.trip_detail_time)).setText(time(loaded.totalTime));
             int count = loaded.locations == null ? 0 : loaded.locations.size();
             ((TextView)view.findViewById(R.id.trip_detail_places)).setText(count + " địa điểm");
-            ((TextView)view.findViewById(R.id.trip_detail_price)).setText(String.format("%,dđ", loaded.estimatedPrice));
+            ((TextView)view.findViewById(R.id.trip_detail_price)).setText(String.format(Locale.getDefault(), "%,dđ", loaded.estimatedPrice));
             ((TextView)view.findViewById(R.id.trip_detail_description)).setText(safe(loaded.description));
             ((TextView)view.findViewById(R.id.trip_detail_highlight)).setText("Điểm nổi bật\n" + safe(loaded.highlight));
             updateFavoriteButton();
