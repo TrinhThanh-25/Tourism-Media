@@ -6,8 +6,12 @@ SERVER_DIR="$SCRIPT_DIR/Travel-App-Server"
 ANDROID_DIR="$SCRIPT_DIR/TourismMedia"
 LOG_DIR="$SCRIPT_DIR/.demo-logs"
 AVD_NAME="${1:-Pixel_7}"
-GPU_MODE="${TOURISM_GPU_MODE:-nvidia}"
-SERVER_URL="http://127.0.0.1:3000/api"
+GPU_MODE="${TOURISM_GPU_MODE:-auto}"
+SERVER_PORT="${TOURISM_SERVER_PORT:-$(sed -n 's/^PORT=//p' "$SERVER_DIR/.env" 2>/dev/null | head -n 1)}"
+SERVER_PORT="${SERVER_PORT:-3000}"
+SERVER_URL="http://127.0.0.1:${SERVER_PORT}/api"
+export TOURISM_API_BASE_URL="${TOURISM_API_BASE_URL:-http://10.0.2.2:${SERVER_PORT}/}"
+SERVER_PUBLIC_URL="${PUBLIC_BASE_URL:-${TOURISM_API_BASE_URL%/}}"
 PACKAGE_NAME="com.example.tourismmedia"
 LAUNCHER_ACTIVITY="$PACKAGE_NAME/.auth.AuthActivity"
 
@@ -79,6 +83,15 @@ export JAVA_HOME="$JDK_DIR"
 export PATH="$JAVA_HOME/bin:$PATH"
 info "Sử dụng JDK đầy đủ tại $JAVA_HOME"
 
+if [[ "$GPU_MODE" == "auto" ]]; then
+  if command -v nvidia-smi >/dev/null 2>&1 && command -v prime-run >/dev/null 2>&1 \
+      && nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
+    GPU_MODE="nvidia"
+  else
+    GPU_MODE="host"
+  fi
+fi
+
 if [[ "$GPU_MODE" == "nvidia" ]]; then
   command -v nvidia-smi >/dev/null 2>&1 || fail "Không tìm thấy nvidia-smi."
   command -v prime-run >/dev/null 2>&1 || fail "Không tìm thấy prime-run để bật NVIDIA PRIME offload."
@@ -112,11 +125,13 @@ if [[ ! -d "$SERVER_DIR/node_modules" ]]; then
   (cd "$SERVER_DIR" && npm install)
 fi
 
+[[ -f "$SERVER_DIR/.env" ]] || fail "Thiếu Travel-App-Server/.env. Hãy copy .env.example thành .env và đặt JWT_SECRET riêng."
+
 if curl --silent --fail "$SERVER_URL" >/dev/null 2>&1; then
   info "Backend đã chạy tại $SERVER_URL"
 else
   info "Đang khởi động backend..."
-  (cd "$SERVER_DIR" && npm start) >"$LOG_DIR/backend.log" 2>&1 &
+  (cd "$SERVER_DIR" && PORT="$SERVER_PORT" PUBLIC_BASE_URL="$SERVER_PUBLIC_URL" npm start) >"$LOG_DIR/backend.log" 2>&1 &
   SERVER_PID=$!
   STARTED_SERVER=true
   for _ in $(seq 1 30); do
@@ -146,6 +161,9 @@ if [[ "$GPU_MODE" == "nvidia" ]]; then
   # prime-run sets NVIDIA PRIME offload for both OpenGL and Vulkan. This avoids
   # the unstable hybrid state where Vulkan selects NVIDIA but GLES selects AMD.
   prime-run "$EMULATOR_BIN" "@$AVD_NAME" -gpu host -no-snapshot -no-boot-anim -feature -Vulkan \
+    >"$LOG_DIR/emulator.log" 2>&1 &
+elif [[ "$GPU_MODE" == "software" ]]; then
+  "$EMULATOR_BIN" "@$AVD_NAME" -gpu swiftshader_indirect -no-snapshot -no-boot-anim \
     >"$LOG_DIR/emulator.log" 2>&1 &
 else
   "$EMULATOR_BIN" "@$AVD_NAME" -gpu host -no-snapshot -no-boot-anim -feature -Vulkan \
