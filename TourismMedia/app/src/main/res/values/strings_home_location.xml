@@ -26,7 +26,10 @@
     <string name="explore_min_price">Giá tối thiểu</string>
     <string name="explore_max_price">Giá tối đa</string>
     <string name="explore_apply">Áp dụng</string>
-    <string name="explore_result_count">%d địa điểm</string>
+    <plurals name="explore_result_count">
+        <item quantity="one">%d địa điểm</item>
+        <item quantity="other">%d địa điểm</item>
+    </plurals>
 
     <string name="explore_sort_rating">Đánh giá cao</string>
     <string name="explore_sort_reviews">Nhiều đánh giá nhất</string>

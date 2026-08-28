@@ -39,7 +39,13 @@ public class SimpleCardAdapter extends RecyclerView.Adapter<SimpleCardAdapter.Ho
     private final List<CardItem> items = new ArrayList<>();
     private final Listener listener;
     public SimpleCardAdapter(Listener listener) { this.listener = listener; }
-    public void submit(List<CardItem> next) { items.clear(); items.addAll(next); notifyDataSetChanged(); }
+    public void submit(List<CardItem> next) {
+        int oldSize = items.size();
+        items.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
+        items.addAll(next);
+        if (!items.isEmpty()) notifyItemRangeInserted(0, items.size());
+    }
 
     @NonNull @Override public Holder onCreateViewHolder(@NonNull ViewGroup parent, int type) {
         return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_travel_card, parent, false));
