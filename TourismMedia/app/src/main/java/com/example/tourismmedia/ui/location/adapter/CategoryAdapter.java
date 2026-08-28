@@ -37,19 +37,25 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
     /** @param categories distinct category names; the "All" chip is prepended here */
     public void submit(String allLabel, List<String> categories) {
         this.allLabel = allLabel;
+        int oldSize = values.size();
         values.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
         values.add(null);
         values.addAll(categories);
         if (selected >= values.size()) {
             selected = 0;
         }
-        notifyDataSetChanged();
+        notifyItemRangeInserted(0, values.size());
     }
 
     public void select(String category) {
         int index = category == null ? 0 : values.indexOf(category);
+        int previous = selected;
         selected = Math.max(0, index);
-        notifyDataSetChanged();
+        if (previous != selected) {
+            notifyItemChanged(previous);
+            notifyItemChanged(selected);
+        }
     }
 
     @NonNull

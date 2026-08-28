@@ -25,9 +25,11 @@ public class LocationImageAdapter extends RecyclerView.Adapter<LocationImageAdap
     private final List<LocationImage> items = new ArrayList<>();
 
     public void submit(List<LocationImage> next) {
+        int oldSize = items.size();
         items.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
         items.addAll(next);
-        notifyDataSetChanged();
+        if (!items.isEmpty()) notifyItemRangeInserted(0, items.size());
     }
 
     @NonNull

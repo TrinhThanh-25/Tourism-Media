@@ -33,9 +33,11 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.Holder> {
 
     public void submit(List<Review> next, long currentUserId) {
         this.currentUserId = currentUserId;
+        int oldSize = items.size();
         items.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
         items.addAll(next);
-        notifyDataSetChanged();
+        if (!items.isEmpty()) notifyItemRangeInserted(0, items.size());
     }
 
     /** The review written by the signed-in user, or null when they have not reviewed yet. */

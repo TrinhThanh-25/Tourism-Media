@@ -149,7 +149,7 @@ public class ExploreFragment extends Fragment {
             empty.setVisibility(data.isEmpty() ? View.VISIBLE : View.GONE);
             status.setText(error != null
                     ? error
-                    : getString(R.string.explore_result_count, data.size()));
+                    : getResources().getQuantityString(R.plurals.explore_result_count, data.size(), data.size()));
         });
     }
 

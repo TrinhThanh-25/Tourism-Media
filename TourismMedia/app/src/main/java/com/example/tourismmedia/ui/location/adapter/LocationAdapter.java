@@ -38,9 +38,11 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Holder
     }
 
     public void submit(List<Location> next) {
+        int oldSize = items.size();
         items.clear();
+        if (oldSize > 0) notifyItemRangeRemoved(0, oldSize);
         items.addAll(next);
-        notifyDataSetChanged();
+        if (!items.isEmpty()) notifyItemRangeInserted(0, items.size());
     }
 
     public Location itemAt(int position) {

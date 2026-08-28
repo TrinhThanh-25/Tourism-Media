@@ -166,6 +166,7 @@ public class LocationDetailFragment extends Fragment {
             }
             location = data;
             bindLocation(data);
+            repository.recordLocationRead(data.id);
             content.setVisibility(View.VISIBLE);
         });
     }
