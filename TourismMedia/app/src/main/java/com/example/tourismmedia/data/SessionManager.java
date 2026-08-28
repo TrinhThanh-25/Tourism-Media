@@ -41,6 +41,8 @@ public class SessionManager {
     }
 
     public synchronized void updateTokens(String accessToken, String refreshToken) {
+        // Synchronous persistence is intentional because concurrent requests may use the rotated token immediately.
+        //noinspection ApplySharedPref
         preferences.edit()
                 .putString(KEY_TOKEN, accessToken)
                 .putString(KEY_REFRESH, refreshToken)

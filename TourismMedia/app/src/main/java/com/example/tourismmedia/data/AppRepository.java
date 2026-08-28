@@ -1,6 +1,7 @@
 package com.example.tourismmedia.data;
 
 import android.content.Context;
+import android.net.Uri;
 
 import androidx.annotation.NonNull;
 
@@ -21,44 +22,52 @@ import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.TripPage;
 import com.example.tourismmedia.data.model.AppModels.TripReview;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
+import com.example.tourismmedia.data.model.AppModels.UploadResult;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.function.Supplier;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import okio.BufferedSink;
+import okio.Okio;
 
 /**
  * Every network call the app makes. Callbacks run on the main thread (Retrofit's
- * default for Android) and never hand a null list to the UI: a failed list request
- * falls back to {@link SampleData} and reports {@code sample = true}.
+ * default for Android). Every payload comes from Travel-App-Server; failed list
+ * requests return an empty list plus the real error instead of fabricated data.
  */
 public class AppRepository {
 
     /**
      * @param data   payload, or null when a single-object request failed
      * @param error  human readable message, or null on success
-     * @param sample true when the payload came from the offline fallback
+     * @param sample retained for callback compatibility; always false because sample data is disabled
      */
     public interface Result<T> {
         void onResult(T data, String error, boolean sample);
     }
 
-    private static final String OFFLINE = "Không kết nối được máy chủ, đang hiển thị dữ liệu mẫu";
+    private static final String OFFLINE = "Không kết nối được máy chủ";
     private static final Gson GSON = new Gson();
 
     private static volatile AppRepository instance;
 
     private final ApiService api;
     private final SessionManager session;
+    private final Context context;
 
     private AppRepository(Context context) {
+        this.context = context.getApplicationContext();
         session = new SessionManager(context);
         api = ApiClient.service(context, session);
     }
@@ -156,7 +165,7 @@ public class AppRepository {
             params.put("max_price", String.valueOf(maxPrice.longValue()));
         }
         put(params, "sort_by", sort);
-        list(api.locations(session.authorization(), params), result, SampleData::locations);
+        list(api.locations(session.authorization(), params), result);
     }
 
     public void location(long id, Result<Location> result) {
@@ -165,16 +174,15 @@ public class AppRepository {
 
     public void nearbyLocations(double latitude, double longitude, double radiusKm, int limit,
                                 Result<List<Location>> result) {
-        list(api.nearbyLocations(session.authorization(), latitude, longitude, radiusKm, limit),
-                result, SampleData::locations);
+        list(api.nearbyLocations(session.authorization(), latitude, longitude, radiusKm, limit), result);
     }
 
     public void locationImages(long id, Result<List<LocationImage>> result) {
-        list(api.locationImages(id), result, () -> SampleData.images(id));
+        list(api.locationImages(id), result);
     }
 
     public void favoriteLocations(Result<List<Location>> result) {
-        list(api.favoriteLocations(session.authorization()), result, ArrayList::new);
+        list(api.favoriteLocations(session.authorization()), result);
     }
 
     public void favoriteLocation(long id, boolean alreadyFavorite, Result<Message> result) {
@@ -189,13 +197,51 @@ public class AppRepository {
     }
 
     public void checkIns(Result<List<Location>> result) {
-        list(api.checkIns(session.authorization()), result, ArrayList::new);
+        list(api.checkIns(session.authorization()), result);
+    }
+
+    public void recordLocationRead(long locationId) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("location_id", locationId);
+        api.recordLocationRead(session.authorization(), body).enqueue(new Callback<>() {
+            @Override public void onResponse(@NonNull Call<Message> call, @NonNull Response<Message> response) { }
+            @Override public void onFailure(@NonNull Call<Message> call, @NonNull Throwable throwable) { }
+        });
+    }
+
+    public void uploadImage(Uri uri, Result<String> result) {
+        String mime = context.getContentResolver().getType(uri);
+        if (!("image/jpeg".equals(mime) || "image/png".equals(mime) || "image/webp".equals(mime))) {
+            result.onResult(null, "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP", false);
+            return;
+        }
+        MediaType mediaType = MediaType.get(mime);
+        RequestBody requestBody = new RequestBody() {
+            @Override public MediaType contentType() { return mediaType; }
+            @Override public void writeTo(@NonNull BufferedSink sink) throws IOException {
+                try (InputStream input = context.getContentResolver().openInputStream(uri)) {
+                    if (input == null) throw new IOException("Không thể đọc ảnh đã chọn");
+                    sink.writeAll(Okio.source(input));
+                }
+            }
+        };
+        api.uploadImage(session.authorization(), requestBody).enqueue(new Callback<>() {
+            @Override public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
+                UploadResult uploaded = response.body();
+                if (!response.isSuccessful() || uploaded == null || uploaded.url == null) {
+                    result.onResult(null, errorOf(response, "Không thể tải ảnh lên"), false);
+                } else result.onResult(uploaded.url, null, false);
+            }
+            @Override public void onFailure(@NonNull Call<UploadResult> call, @NonNull Throwable throwable) {
+                result.onResult(null, OFFLINE + ": " + throwable.getMessage(), false);
+            }
+        });
     }
 
     // ------------------------------------------------------ location reviews
 
     public void locationReviews(long locationId, Result<List<Review>> result) {
-        list(api.locationReviews(locationId), result, SampleData::reviews);
+        list(api.locationReviews(locationId), result);
     }
 
     public void createLocationReview(long locationId, int rating, String comment, Result<Review> result) {
@@ -270,7 +316,7 @@ public class AppRepository {
     }
 
     public void vouchers(Result<List<Voucher>> result) {
-        list(api.vouchers(session.authorization()), result, ArrayList::new);
+        list(api.vouchers(session.authorization()), result);
     }
 
     public void useVoucher(long voucherId, Result<Message> result) {
@@ -282,7 +328,7 @@ public class AppRepository {
     }
 
     public void pointTransactions(Result<List<PointTransaction>> result) {
-        list(api.pointTransactions(session.authorization()), result, ArrayList::new);
+        list(api.pointTransactions(session.authorization()), result);
     }
 
     // ----------------------------------------------------------------- trips
@@ -313,7 +359,7 @@ public class AppRepository {
             public void onResponse(@NonNull Call<TripPage> call, @NonNull Response<TripPage> response) {
                 TripPage body = response.body();
                 if (!response.isSuccessful() || body == null || body.data == null) {
-                    result.onResult(SampleData.trips(), errorOf(response, "Không thể tải chuyến đi"), true);
+                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải chuyến đi"), false);
                 } else {
                     result.onResult(body.data, null, false);
                 }
@@ -321,7 +367,7 @@ public class AppRepository {
 
             @Override
             public void onFailure(@NonNull Call<TripPage> call, @NonNull Throwable throwable) {
-                result.onResult(SampleData.trips(), OFFLINE, true);
+                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
             }
         });
     }
@@ -353,11 +399,11 @@ public class AppRepository {
     }
 
     public void myTrips(Result<List<Trip>> result) {
-        list(api.myTrips(session.authorization()), result, ArrayList::new);
+        list(api.myTrips(session.authorization()), result);
     }
 
     public void favoriteTrips(Result<List<Trip>> result) {
-        list(api.favoriteTrips(session.authorization()), result, ArrayList::new);
+        list(api.favoriteTrips(session.authorization()), result);
     }
 
     public void favoriteTrip(long id, boolean alreadyFavorite, Result<Message> result) {
@@ -370,7 +416,7 @@ public class AppRepository {
     }
 
     public void tripReviews(long tripId, Result<List<TripReview>> result) {
-        list(api.tripReviews(session.authorization(), tripId), result, ArrayList::new);
+        list(api.tripReviews(session.authorization(), tripId), result);
     }
 
     public void createTripReview(long tripId, int rating, String comment, Result<TripReview> result) {
@@ -384,11 +430,11 @@ public class AppRepository {
     // ---------------------------------------------------- challenges/rewards
 
     public void challenges(Result<List<Challenge>> result) {
-        list(api.challenges(), result, SampleData::challenges);
+        list(api.challenges(), result);
     }
 
     public void myChallenges(Result<List<Challenge>> result) {
-        list(api.myChallenges(session.authorization()), result, ArrayList::new);
+        list(api.myChallenges(session.authorization()), result);
     }
 
     public void challenge(long id, Result<Challenge> result) {
@@ -427,14 +473,14 @@ public class AppRepository {
         }
     }
 
-    /** List requests always deliver a usable list so callers can iterate without null checks. */
-    private <T> void list(Call<List<T>> call, Result<List<T>> result, Supplier<List<T>> fallback) {
+    /** List requests return only server data and never hand a null list to callers. */
+    private <T> void list(Call<List<T>> call, Result<List<T>> result) {
         call.enqueue(new Callback<>() {
             @Override
             public void onResponse(@NonNull Call<List<T>> call, @NonNull Response<List<T>> response) {
                 List<T> body = response.body();
                 if (!response.isSuccessful() || body == null) {
-                    result.onResult(fallback.get(), errorOf(response, "Không thể tải dữ liệu"), true);
+                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải dữ liệu"), false);
                 } else {
                     result.onResult(body, null, false);
                 }
@@ -442,7 +488,7 @@ public class AppRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<T>> call, @NonNull Throwable throwable) {
-                result.onResult(fallback.get(), OFFLINE, true);
+                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
             }
         });
     }

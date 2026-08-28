@@ -16,6 +16,9 @@ import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.TripPage;
 import com.example.tourismmedia.data.model.AppModels.TripReview;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
+import com.example.tourismmedia.data.model.AppModels.UploadResult;
+
+import okhttp3.RequestBody;
 
 import java.util.List;
 import java.util.Map;
@@ -115,6 +118,12 @@ public interface ApiService {
 
     @POST("api/me/locations")
     Call<Message> checkIn(@Header("Authorization") String auth, @Body Map<String, Object> body);
+
+    @POST("api/me/activity/location-read")
+    Call<Message> recordLocationRead(@Header("Authorization") String auth, @Body Map<String, Object> body);
+
+    @POST("api/uploads/images")
+    Call<UploadResult> uploadImage(@Header("Authorization") String auth, @Body RequestBody body);
 
     @GET("api/me/rewards")
     Call<RewardCatalog> rewardCatalog(@Header("Authorization") String auth);

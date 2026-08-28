@@ -259,6 +259,10 @@ public final class AppModels {
         public int remainingPoints;
     }
 
+    public static class UploadResult {
+        public String url;
+    }
+
     public static class TripReview {
         public long id;
         public long userId;

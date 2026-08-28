@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.example.tourismmedia.auth.AuthActivity;
+import com.example.tourismmedia.BuildConfig;
 import com.example.tourismmedia.data.api.ApiService;
 import com.example.tourismmedia.data.model.AppModels.AuthResponse;
 import com.google.gson.Gson;
@@ -25,7 +26,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 /** Retrofit client with one-time refresh-token rotation for authenticated calls. */
 public final class ApiClient {
-    public static final String BASE_URL = "http://10.0.2.2:3000/";
+    public static final String BASE_URL = BuildConfig.API_BASE_URL;
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final Gson GSON = new Gson();
     private static final Object REFRESH_LOCK = new Object();
