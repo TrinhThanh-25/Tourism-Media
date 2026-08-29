@@ -19,6 +19,7 @@ import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.ui.common.SimpleCardAdapter;
 import com.example.tourismmedia.ui.location.LocationDetailFragment;
+import com.example.tourismmedia.ui.location.LocationFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,8 @@ public class TripDetailFragment extends Fragment {
     private TextView saveButton;
     private TextView publishButton;
     private View editButton;
+    private View itineraryButton;
+    private View readOnlyNotice;
 
     public TripDetailFragment() { super(R.layout.fragment_trip_detail); }
 
@@ -40,9 +43,11 @@ public class TripDetailFragment extends Fragment {
         saveButton = view.findViewById(R.id.trip_detail_save);
         publishButton = view.findViewById(R.id.trip_detail_publish);
         editButton = view.findViewById(R.id.trip_detail_edit);
+        itineraryButton = view.findViewById(R.id.trip_detail_itinerary);
+        readOnlyNotice = view.findViewById(R.id.trip_detail_read_only);
         view.findViewById(R.id.trip_detail_back).setOnClickListener(v -> Navigation.findNavController(view).navigateUp());
-        view.findViewById(R.id.trip_detail_itinerary).setOnClickListener(v -> open("itinerary"));
-        editButton.setOnClickListener(v -> open("edit"));
+        itineraryButton.setOnClickListener(v -> open("itinerary"));
+        editButton.setOnClickListener(v -> openOwnerWorkspace("edit"));
         view.findViewById(R.id.trip_detail_reviews).setOnClickListener(v -> open("reviews"));
         saveButton.setOnClickListener(v -> toggleFavorite());
         publishButton.setOnClickListener(v -> togglePublished());
@@ -61,7 +66,9 @@ public class TripDetailFragment extends Fragment {
             if (loaded == null) { Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show(); return; }
             trip = loaded;
             ((TextView)view.findViewById(R.id.trip_detail_title)).setText(loaded.title);
-            ((TextView)view.findViewById(R.id.trip_detail_rating)).setText("★ " + loaded.rating + " · " + loaded.reviewCount + " đánh giá");
+            TextView tripRating = view.findViewById(R.id.trip_detail_rating);
+            tripRating.setText("★ " + LocationFormatter.rating(loaded.rating) + " · " + loaded.reviewCount + " đánh giá");
+            tripRating.setVisibility(loaded.reviewCount > 0 ? View.VISIBLE : View.GONE);
             ((TextView)view.findViewById(R.id.trip_detail_author)).setText(loaded.published == 1
                     ? "Đăng bởi " + safe(loaded.authorUsername) + " · " + date(loaded.publishedAt) : "Chuyến đi riêng tư");
             ((TextView)view.findViewById(R.id.trip_detail_time)).setText(time(loaded.totalTime));
@@ -71,14 +78,22 @@ public class TripDetailFragment extends Fragment {
             ((TextView)view.findViewById(R.id.trip_detail_description)).setText(safe(loaded.description));
             ((TextView)view.findViewById(R.id.trip_detail_highlight)).setText("Điểm nổi bật\n" + safe(loaded.highlight));
             updateFavoriteButton();
-            boolean owner = loaded.userId == repository.session().userId();
+            boolean owner = TripPermissions.canEdit(loaded.userId, repository.session().userId());
             editButton.setVisibility(owner ? View.VISIBLE : View.GONE);
             publishButton.setVisibility(owner ? View.VISIBLE : View.GONE);
+            itineraryButton.setVisibility(View.VISIBLE);
+            ((TextView) itineraryButton).setText(owner ? "Quản lý" : "Xem chi tiết");
+            readOnlyNotice.setVisibility(owner ? View.GONE : View.VISIBLE);
             publishButton.setText(loaded.published == 1 ? "Gỡ cộng đồng" : "Đăng cộng đồng");
             saveButton.setVisibility(!owner && loaded.published == 1 ? View.VISIBLE : View.GONE);
             Glide.with(this).load(loaded.imageUrl).centerCrop().placeholder(R.drawable.bg_hero).error(R.drawable.bg_hero).into((ImageView)view.findViewById(R.id.trip_detail_image));
             List<SimpleCardAdapter.CardItem> cards = new ArrayList<>();
-            if (loaded.locations != null) for (Location location : loaded.locations) cards.add(new SimpleCardAdapter.CardItem("⌖", location.name, safe(location.category) + " · " + safe(location.city), "★ " + location.rating, location.imageUrl, location));
+            if (loaded.locations != null) for (Location location : loaded.locations) {
+                String locationRating = location.reviewCount > 0 ? "★ " + LocationFormatter.rating(location.rating) : "";
+                cards.add(new SimpleCardAdapter.CardItem("⌖", location.name,
+                        safe(location.category) + " · " + safe(location.city),
+                        locationRating, location.imageUrl, location));
+            }
             adapter.submit(cards);
         });
     }
@@ -99,7 +114,7 @@ public class TripDetailFragment extends Fragment {
 
     private void updateFavoriteButton() { saveButton.setText(trip != null && trip.favorite == 1 ? "♥ Đã lưu" : "♡ Lưu"); }
     private void togglePublished() {
-        if (trip == null) return;
+        if (!ownsTrip()) return;
         boolean publish = trip.published != 1;
         publishButton.setEnabled(false);
         repository.setTripPublished(id, publish, (updated, error, stale) -> {
@@ -116,6 +131,12 @@ public class TripDetailFragment extends Fragment {
                     ? "Đăng bởi " + safe(updated.authorUsername) + " · " + date(updated.publishedAt) : "Chuyến đi riêng tư");
             Toast.makeText(requireContext(), publish ? "Đã đăng lên cộng đồng" : "Đã gỡ khỏi cộng đồng", Toast.LENGTH_SHORT).show();
         });
+    }
+    private boolean ownsTrip() {
+        return trip != null && TripPermissions.canEdit(trip.userId, repository.session().userId());
+    }
+    private void openOwnerWorkspace(String mode) {
+        if (ownsTrip()) open(mode);
     }
     private void open(String mode) { Bundle args=new Bundle(); args.putString("mode",mode); args.putLong("id",id); Navigation.findNavController(requireView()).navigate(R.id.tripWorkspaceFragment,args); }
     private String safe(String value) { return value == null || value.isBlank() ? "Chưa có thông tin" : value; }

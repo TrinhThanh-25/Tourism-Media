@@ -36,6 +36,8 @@ import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.TripReview;
+import com.example.tourismmedia.ui.location.LocationDetailFragment;
+import com.example.tourismmedia.ui.location.LocationFormatter;
 import com.google.android.material.button.MaterialButton;
 
 import java.util.ArrayList;
@@ -56,6 +58,7 @@ public class TripWorkspaceFragment extends Fragment {
     private MaterialButton primary;
     private MaterialButton secondary;
     private MaterialButton top;
+    private View actionBar;
     private AppRepository repo;
     private long id;
     private String mode;
@@ -94,11 +97,24 @@ public class TripWorkspaceFragment extends Fragment {
         primary = view.findViewById(R.id.workspace_primary);
         secondary = view.findViewById(R.id.workspace_secondary);
         top = view.findViewById(R.id.workspace_top_action);
+        actionBar = view.findViewById(R.id.workspace_actions);
         view.findViewById(R.id.workspace_back).setOnClickListener(v -> Navigation.findNavController(view).navigateUp());
         secondary.setOnClickListener(v -> Navigation.findNavController(view).navigateUp());
-        if (id > 0 && !mode.equals("filter") && !mode.equals("reviews") && !mode.equals("write-review")) {
+        boolean loadsTrip = id > 0 && !mode.equals("filter") && !mode.equals("reviews") && !mode.equals("write-review");
+        if (loadsTrip) {
+            actionBar.setVisibility(View.GONE);
             repo.trip(id, (item, error, stale) -> {
                 if (!viewActive()) return;
+                if (item == null) {
+                    Toast.makeText(requireContext(), error == null ? "Không thể tải chuyến đi" : error, Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
+                    return;
+                }
+                if (requiresOwnership(mode) && !TripPermissions.canEdit(item.userId, repo.session().userId())) {
+                    Toast.makeText(requireContext(), "Chuyến đi này chỉ được phép xem", Toast.LENGTH_SHORT).show();
+                    Navigation.findNavController(requireView()).navigateUp();
+                    return;
+                }
                 trip = item;
                 render();
             });
@@ -107,9 +123,15 @@ public class TripWorkspaceFragment extends Fragment {
         }
     }
 
+    private boolean requiresOwnership(String workspaceMode) {
+        return "edit".equals(workspaceMode)
+                || "add-location".equals(workspaceMode);
+    }
+
     private void render() {
         content.removeAllViews();
         top.setVisibility(View.GONE);
+        actionBar.setVisibility(View.VISIBLE);
         primary.setVisibility(View.VISIBLE);
         switch (mode) {
             case "filter": filter(); break;
@@ -512,12 +534,16 @@ public class TripWorkspaceFragment extends Fragment {
     }
 
     private void itinerary() {
-        header("Itinerary", trip == null ? "Đang tải..." : trip.title);
-        top.setVisibility(View.VISIBLE);
-        top.setOnClickListener(v -> open("add-location"));
+        boolean editable = trip != null && TripPermissions.canEdit(trip.userId, repo.session().userId());
+        header(editable ? "Quản lý lịch trình" : "Chi tiết lịch trình",
+                trip == null ? "Đang tải..." : trip.title);
+        top.setVisibility(editable ? View.VISIBLE : View.GONE);
+        if (editable) top.setOnClickListener(v -> open("add-location"));
         heading((trip == null || trip.locations == null ? 0 : trip.locations.size()) + " địa điểm trong hành trình");
         if (trip == null || trip.locations == null || trip.locations.isEmpty()) {
-            empty("Chưa có địa điểm", "Thêm địa điểm để bắt đầu xây dựng lịch trình.");
+            empty("Chưa có địa điểm", editable
+                    ? "Thêm địa điểm để bắt đầu xây dựng lịch trình."
+                    : "Chuyến đi này chưa có thông tin lịch trình.");
         } else {
             int indexValue = 1;
             int currentDay = -1;
@@ -558,15 +584,23 @@ public class TripWorkspaceFragment extends Fragment {
                 LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, -2, 1);
                 labelParams.setMargins(dp(12), 0, 0, 0);
                 itemRow.addView(labels, labelParams);
-                itemRow.addView(text("☰", 20, false));
-                itemRow.setOnClickListener(v -> showItineraryActions(location));
+                if (editable) {
+                    TextView menu = text("☰", 20, false);
+                    menu.setPadding(dp(14), dp(10), dp(4), dp(10));
+                    menu.setOnClickListener(v -> showItineraryActions(location));
+                    itemRow.addView(menu);
+                }
+                itemRow.setOnClickListener(v -> openLocationDetail(location));
                 dayCard.addView(itemRow);
             }
         }
-        primary.setText("Lưu itinerary");
-        secondary.setText("Thêm địa điểm");
-        secondary.setOnClickListener(v -> open("add-location"));
-        primary.setOnClickListener(v -> saveCurrentItinerary());
+        actionBar.setVisibility(editable ? View.VISIBLE : View.GONE);
+        if (editable) {
+            primary.setText("Lưu lịch trình");
+            secondary.setText("Thêm địa điểm");
+            secondary.setOnClickListener(v -> open("add-location"));
+            primary.setOnClickListener(v -> saveCurrentItinerary());
+        }
     }
 
     private LinearLayout row() {
@@ -596,7 +630,9 @@ public class TripWorkspaceFragment extends Fragment {
             if (!viewActive()) return;
             for (Location location : data.subList(0, Math.min(30, data.size()))) {
                 CheckBox box = new CheckBox(requireContext());
-                box.setText(location.name + "\n" + (location.category == null ? "" : location.category) + " · ★ " + location.rating);
+                String locationMeta = location.category == null ? "" : location.category;
+                if (location.reviewCount > 0) locationMeta += " · ★ " + LocationFormatter.rating(location.rating);
+                box.setText(location.name + "\n" + locationMeta);
                 box.setTextColor(INK);
                 box.setPadding(dp(14), dp(8), dp(14), dp(8));
                 box.setBackground(card());
@@ -702,6 +738,12 @@ public class TripWorkspaceFragment extends Fragment {
                     }
                 })
                 .show();
+    }
+
+    private void openLocationDetail(Location location) {
+        Navigation.findNavController(requireView()).navigate(
+                R.id.locationDetailFragment,
+                LocationDetailFragment.argsFor(location.id, location.name));
     }
 
     private void editItineraryTime(Location location) {

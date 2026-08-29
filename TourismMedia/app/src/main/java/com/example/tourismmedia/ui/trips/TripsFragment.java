@@ -3,7 +3,12 @@ package com.example.tourismmedia.ui.trips;
 import android.app.AlertDialog;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +24,11 @@ import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.google.android.material.button.MaterialButton;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
 public class TripsFragment extends Fragment {
     private static final String TAB_MINE = "mine";
     private static final String TAB_SAVED = "saved";
@@ -29,15 +39,15 @@ public class TripsFragment extends Fragment {
     private MaterialButton mineButton;
     private MaterialButton savedButton;
     private MaterialButton communityButton;
-    private MaterialButton filterButton;
+    private MaterialButton sortButton;
+    private EditText searchInput;
     private RecyclerView list;
     private TextView emptyView;
     private String activeTab = TAB_MINE;
-    private String sort = "rating-desc";
-    private Double minRating;
-    private Long maxPrice;
-    private Integer minTime;
-    private Integer maxTime;
+    private String sort = "published_at-desc";
+    private String query = "";
+    private final Handler searchHandler = new Handler(Looper.getMainLooper());
+    private final Runnable searchTask = this::load;
     private long pendingLocationId;
     private String pendingLocationName;
 
@@ -61,30 +71,23 @@ public class TripsFragment extends Fragment {
         mineButton = view.findViewById(R.id.trips_tab_mine);
         savedButton = view.findViewById(R.id.trips_tab_saved);
         communityButton = view.findViewById(R.id.trips_tab_community);
-        filterButton = view.findViewById(R.id.trips_search_toggle);
+        sortButton = view.findViewById(R.id.trips_sort);
+        searchInput = view.findViewById(R.id.trips_search_input);
 
         mineButton.setOnClickListener(v -> selectTab(TAB_MINE));
         savedButton.setOnClickListener(v -> selectTab(TAB_SAVED));
         communityButton.setOnClickListener(v -> selectTab(TAB_COMMUNITY));
-        filterButton.setOnClickListener(v -> workspace("filter", 0));
+        sortButton.setOnClickListener(v -> chooseSort());
         view.findViewById(R.id.add_trip).setOnClickListener(v -> workspace("create", 0));
-
-        Navigation.findNavController(view).getCurrentBackStackEntry().getSavedStateHandle()
-                .<Bundle>getLiveData("trip_filter")
-                .observe(getViewLifecycleOwner(), result -> {
-                    sort = result.getString("sort", "rating-desc");
-                    double rating = result.getDouble("rating", 0);
-                    minRating = rating == 0 ? null : rating;
-                    long budget = result.getLong("budget", 0);
-                    maxPrice = budget == 0 ? null : budget;
-                    int durationMode = result.getInt("duration", 0);
-                    minTime = durationMode == 3 ? 4 * 1440 : null;
-                    maxTime = durationMode == 1 ? 1440 : durationMode == 2 ? 3 * 1440 : null;
-                    if (durationMode == 2) minTime = 2 * 1440;
-                    filterButton.setText(minRating == null && maxPrice == null && minTime == null && maxTime == null
-                            && "rating-desc".equals(sort) ? "☷" : "●");
-                    selectTab(TAB_COMMUNITY);
-                });
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence value, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence value, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable value) {
+                query = value.toString().trim();
+                searchHandler.removeCallbacks(searchTask);
+                searchHandler.postDelayed(searchTask, 300);
+            }
+        });
 
         updateTabs();
         load();
@@ -110,15 +113,18 @@ public class TripsFragment extends Fragment {
     }
 
     private void load() {
-        AppRepository.Result<java.util.List<Trip>> result = (data, error, stale) -> {
+        AppRepository.Result<List<Trip>> result = (data, error, stale) -> {
             if (!viewActive()) return;
+            List<Trip> visibleTrips = present(data);
             adapter.setOwnerMode(TAB_MINE.equals(activeTab));
-            adapter.submit(data);
-            boolean empty = data == null || data.isEmpty();
+            adapter.submit(visibleTrips);
+            boolean empty = visibleTrips.isEmpty();
             list.setVisibility(empty ? View.GONE : View.VISIBLE);
             emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
             if (empty) {
-                emptyView.setText(error != null && error.contains("401")
+                emptyView.setText(!query.isEmpty()
+                        ? "🔎\n\nKhông tìm thấy chuyến đi phù hợp với ‘" + query + "’."
+                        : error != null && error.contains("401")
                         ? "🔐\n\nPhiên đăng nhập đã hết hạn\nĐăng nhập lại để xem chuyến đi cá nhân."
                         : "🧭\n\nChưa có chuyến đi\nTạo một hành trình mới hoặc khám phá cộng đồng.");
             }
@@ -128,10 +134,49 @@ public class TripsFragment extends Fragment {
         if (TAB_SAVED.equals(activeTab)) {
             repo.favoriteTrips(result);
         } else if (TAB_COMMUNITY.equals(activeTab)) {
-            repo.trips("", minRating, maxPrice, minTime, maxTime, sort, result);
+            repo.trips(query, null, null, sort, result);
         } else {
             repo.myTrips(result);
         }
+    }
+
+    private List<Trip> present(List<Trip> source) {
+        List<Trip> result = new ArrayList<>();
+        if (source != null) {
+            String needle = query.toLowerCase(Locale.ROOT);
+            for (Trip trip : source) {
+                String searchable = (safe(trip.title) + " " + safe(trip.description) + " " + safe(trip.highlight))
+                        .toLowerCase(Locale.ROOT);
+                if (needle.isEmpty() || searchable.contains(needle)) result.add(trip);
+            }
+        }
+        if ("title-asc".equals(sort)) {
+            result.sort(Comparator.comparing(trip -> safe(trip.title), String.CASE_INSENSITIVE_ORDER));
+        } else if ("rating-desc".equals(sort)) {
+            result.sort((first, second) -> {
+                int reviewed = Integer.compare(second.reviewCount > 0 ? 1 : 0, first.reviewCount > 0 ? 1 : 0);
+                return reviewed != 0 ? reviewed : Double.compare(second.rating, first.rating);
+            });
+        } else {
+            result.sort(Comparator.comparingLong((Trip trip) -> trip.id).reversed());
+        }
+        return result;
+    }
+
+    private void chooseSort() {
+        String[] labels = {"Mới nhất", "Tên A–Z", "Đánh giá cao"};
+        String[] values = {"published_at-desc", "title-asc", "rating-desc"};
+        int checked = "title-asc".equals(sort) ? 1 : "rating-desc".equals(sort) ? 2 : 0;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Sắp xếp chuyến đi")
+                .setSingleChoiceItems(labels, checked, (dialog, selected) -> {
+                    sort = values[selected];
+                    sortButton.setText(labels[selected]);
+                    dialog.dismiss();
+                    load();
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
     private void details(Trip trip) {
@@ -200,5 +245,11 @@ public class TripsFragment extends Fragment {
         Navigation.findNavController(requireView()).navigate(R.id.tripWorkspaceFragment, args);
     }
 
+    @Override public void onDestroyView() {
+        searchHandler.removeCallbacks(searchTask);
+        super.onDestroyView();
+    }
+
     private boolean viewActive() { return isAdded() && getView() != null; }
+    private String safe(String value) { return value == null ? "" : value; }
 }

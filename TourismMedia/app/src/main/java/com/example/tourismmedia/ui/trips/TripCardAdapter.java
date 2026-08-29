@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.tourismmedia.R;
 import com.example.tourismmedia.data.model.AppModels.Trip;
+import com.example.tourismmedia.ui.location.LocationFormatter;
 
 import java.util.ArrayList;
 import java.time.Duration;
@@ -59,7 +60,8 @@ public class TripCardAdapter extends RecyclerView.Adapter<TripCardAdapter.Holder
         holder.title.setText(trip.title);
         holder.overlay.setText((trip.highlight == null || trip.highlight.isBlank() ? "Hành trình nổi bật" : trip.highlight) + " · " + time(trip.totalTime));
         holder.meta.setText("Dự kiến " + String.format(Locale.getDefault(), "%,dđ", trip.estimatedPrice) + " · " + time(trip.totalTime));
-        holder.rating.setText("★ " + trip.rating + " (" + trip.reviewCount + ")");
+        holder.rating.setText("★ " + LocationFormatter.rating(trip.rating) + " (" + trip.reviewCount + ")");
+        holder.rating.setVisibility(trip.reviewCount > 0 ? View.VISIBLE : View.GONE);
         holder.status.setText(trip.published == 1 ? "Đã xuất bản" : "Riêng tư");
         holder.author.setText("Đăng bởi " + safe(trip.authorUsername, "Traveler") + " · " + relativeTime(trip.publishedAt));
         holder.author.setVisibility(!ownerMode && trip.published == 1 ? View.VISIBLE : View.GONE);
