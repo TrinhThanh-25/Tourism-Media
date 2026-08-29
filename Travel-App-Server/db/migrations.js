@@ -112,6 +112,18 @@ const migrations = [
       await addColumnIfMissing(db,"user_challenge","completed_at","TEXT");
       await addColumnIfMissing(db,"trips","published_at","TEXT");
     }
+  },
+  {
+    version: 8,
+    name: "recompute_review_aggregates",
+    up: async db => {
+      await execute(db, `UPDATE locations SET
+        rating=(SELECT AVG(review.rating) FROM location_reviews review WHERE review.location_id=locations.id),
+        review_count=(SELECT COUNT(*) FROM location_reviews review WHERE review.location_id=locations.id)`);
+      await execute(db, `UPDATE trips SET
+        rating=(SELECT AVG(review.rating) FROM trip_reviews review WHERE review.trip_id=trips.id),
+        review_count=(SELECT COUNT(*) FROM trip_reviews review WHERE review.trip_id=trips.id)`);
+    }
   }
 ];
 

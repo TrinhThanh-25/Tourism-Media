@@ -79,6 +79,13 @@ const server = app.listen(port, async () => {
     assert.equal(published.author_username, `trip_owner_${suffix}`);
     const community = await request("/api/trips?min_time=1440&max_time=4320&sort=published_at-desc", "GET", null, viewer.token);
     assert.ok(community.data.some(item => item.id === privateTrip.id && item.author_username === `trip_owner_${suffix}`));
+    const vungTauTrips = await request("/api/trips?q=V%C5%A9ng%20T%C3%A0u&sort=title-asc", "GET", null, viewer.token);
+    assert.ok(vungTauTrips.data.length > 0);
+    assert.ok(vungTauTrips.data.every(item => item.title.startsWith("Vũng Tàu - ")));
+    const sampleTripNames = await get(`SELECT COUNT(*) AS count FROM trips
+      WHERE title GLOB '*#[0-9]*' OR title LIKE '%Highlights%'
+      OR title LIKE '%Mini Loop%' OR title LIKE '%Crawl%'`);
+    assert.equal(sampleTripNames.count, 0);
     await request(`/api/trips/${privateTrip.id}/favorite`, "POST", null, viewer.token, 201);
     await request(`/api/trips/${privateTrip.id}/unpublish`, "POST", null, owner.token);
     const savedAfterUnpublish = await request("/api/trips/me/favorites", "GET", null, viewer.token);
@@ -130,11 +137,15 @@ const server = app.listen(port, async () => {
       "SELECT COUNT(*) AS count FROM challenges WHERE end_date IS NOT NULL AND julianday(end_date)<julianday('now')"
     );
     assert.equal(expiredChallenges.count, 0);
+    const phantomRatings = await get(`SELECT
+      (SELECT COUNT(*) FROM locations WHERE review_count=0 AND rating IS NOT NULL) +
+      (SELECT COUNT(*) FROM trips WHERE review_count=0 AND rating IS NOT NULL) AS count`);
+    assert.equal(phantomRatings.count, 0);
     const publicChallenges = await request("/api/challenges", "GET");
     assert.ok(publicChallenges.length > 0 && publicChallenges.every(item => item.active === true));
-    const migration = await get("SELECT name FROM schema_migrations WHERE version=7");
-    assert.equal(migration.name, "add_application_columns");
-    console.log("Smoke fixes passed: image upload, trips, location-read challenge, migration v7, vouchers, refresh rotation");
+    const migration = await get("SELECT name FROM schema_migrations WHERE version=8");
+    assert.equal(migration.name, "recompute_review_aggregates");
+    console.log("Smoke fixes passed: image upload, trips, rating aggregates, location-read challenge, migration v8, vouchers, refresh rotation");
   } finally {
     server.close(() => db.close(() => rmSync(workDir, { recursive:true, force:true })));
   }

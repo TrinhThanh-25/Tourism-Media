@@ -19,7 +19,7 @@ export function createReviewController({
 
   async function recompute(queries, resourceId) {
     const aggregate = await queries.get(
-      `SELECT COALESCE(AVG(rating),0) AS rating,COUNT(*) AS review_count
+      `SELECT AVG(rating) AS rating,COUNT(*) AS review_count
        FROM ${reviewTable} WHERE ${resourceColumn}=?`,
       [resourceId]
     );

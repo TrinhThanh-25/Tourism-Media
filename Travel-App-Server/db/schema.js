@@ -8,7 +8,7 @@ export const TABLES = [
     id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT, type TEXT,
     price REAL DEFAULT 0, description TEXT, latitude REAL, longitude REAL, address TEXT,
     city TEXT, opening_hours TEXT, closing_hours TEXT, image_url TEXT,
-    rating REAL DEFAULT 0, review_count INTEGER DEFAULT 0, qr_code TEXT, key_highlights TEXT
+    rating REAL, review_count INTEGER DEFAULT 0, qr_code TEXT, key_highlights TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS trips (
     id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT, rating REAL,

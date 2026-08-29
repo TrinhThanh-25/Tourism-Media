@@ -8,6 +8,7 @@
 .env
 .env.*
 !.env.example
+.npmrc
 
 # Logs and process files
 *.log
@@ -22,16 +23,26 @@ pnpm-debug.log*
 /data/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.sqlite3
 *.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 !/travel_app.template.db
+/uploads/
+/public/uploads/
 
 # Temporary/editor/OS files
 /tmp/
 /temp/
 *.tmp
+*.orig
+*.rej
 *.tgz
 .DS_Store
 Thumbs.db
