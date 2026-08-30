@@ -17,6 +17,7 @@ import com.example.tourismmedia.data.model.AppModels.Trip;
 import com.example.tourismmedia.data.model.AppModels.Voucher;
 import com.example.tourismmedia.ui.common.SimpleCardAdapter;
 import com.example.tourismmedia.ui.location.LocationDetailFragment;
+import com.example.tourismmedia.ui.location.LocationFormatter;
 import com.example.tourismmedia.ui.trips.TripCardAdapter;
 import com.google.android.material.button.MaterialButton;
 import java.util.ArrayList;
@@ -88,7 +89,11 @@ public class AccountCollectionFragment extends Fragment {
         else if (sortMode==2) data.sort(Comparator.comparing(x->safe(x.name),String.CASE_INSENSITIVE_ORDER));
         else if (checkin) data.sort(Comparator.comparing((Location x)->safe(x.checkedInAt)).reversed());
         List<SimpleCardAdapter.CardItem> cards = new ArrayList<>();
-        for (Location x:data) cards.add(new SimpleCardAdapter.CardItem("⌖",x.name,safe(x.category)+" · "+safe(x.city),checkin?"⌖ "+date(x.checkedInAt):"★ "+x.rating+" · Đã lưu",x.imageUrl,x,!checkin,!checkin));
+        for (Location x:data) {
+            String cardMeta = checkin ? "⌖ " + date(x.checkedInAt)
+                    : x.reviewCount > 0 ? "★ " + LocationFormatter.rating(x.rating) + " · Đã lưu" : "Đã lưu";
+            cards.add(new SimpleCardAdapter.CardItem("⌖",x.name,safe(x.category)+" · "+safe(x.city),cardMeta,x.imageUrl,x,!checkin,!checkin));
+        }
         list.setAdapter(simpleAdapter); simpleAdapter.submit(cards); showState(cards.size(),error,checkin?"Bạn chưa check-in địa điểm nào":"Bạn chưa lưu địa điểm nào");
     }
 

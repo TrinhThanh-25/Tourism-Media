@@ -222,25 +222,48 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void vouchers() {
         header("Voucher của tôi", "Ưu đãi sẵn sàng sử dụng");
-        TextView[] tabs = segmented("Đang dùng", "Đã dùng", "Hết hạn");
+        TextView[] tabs = segmented("Đang dùng", "Đã sử dụng", "Hết hạn");
+        TextView tabEmpty = muted("");
+        tabEmpty.setGravity(Gravity.CENTER);
+        tabEmpty.setText("Đang tải voucher...");
+        content.addView(tabEmpty, new LinearLayout.LayoutParams(-1,dp(72)));
+        List<Voucher> vouchers = new ArrayList<>();
+        List<View> rows = new ArrayList<>();
+        int[] selectedTab = {0};
+        boolean[] loaded = {false};
+        for (int i = 0; i < tabs.length; i++) {
+            final int selected = i;
+            tabs[i].setOnClickListener(v -> {
+                selectedTab[0] = selected;
+                selectSegment(tabs, selected);
+                if (loaded[0]) filterVouchers(vouchers, rows, selected, tabEmpty);
+            });
+        }
         repo.vouchers((items, error, stale) -> {
             if (!viewActive()) return;
-            if (items.isEmpty()) { empty(error == null ? "Bạn chưa có voucher nào" : error); return; }
-            List<View> rows = new ArrayList<>();
-            for (Voucher voucher : items) rows.add(voucherInventoryRow(voucher));
-            for (int i = 0; i < tabs.length; i++) {
-                final int selected = i;
-                tabs[i].setOnClickListener(v -> {
-                    selectSegment(tabs, selected);
-                    for (int index = 0; index < items.size(); index++) {
-                        String status = safe(items.get(index).status).toLowerCase(Locale.ROOT);
-                        boolean visible = selected == 0 ? status.equals("active") : selected == 1 ? status.equals("used") : status.equals("expired");
-                        rows.get(index).setVisibility(visible ? View.VISIBLE : View.GONE);
-                    }
-                });
+            loaded[0] = true;
+            if (error != null && items.isEmpty()) {
+                tabEmpty.setText(error);
+                return;
             }
-            tabs[0].performClick();
+            vouchers.addAll(items);
+            for (Voucher voucher : vouchers) rows.add(voucherInventoryRow(voucher));
+            filterVouchers(vouchers, rows, selectedTab[0], tabEmpty);
         });
+    }
+
+    private void filterVouchers(List<Voucher> vouchers, List<View> rows, int selected, TextView emptyView) {
+        int visibleCount = 0;
+        for (int index = 0; index < vouchers.size(); index++) {
+            String status = safe(vouchers.get(index).status).toLowerCase(Locale.ROOT);
+            boolean visible = selected == 0 ? status.equals("active")
+                    : selected == 1 ? status.equals("used") : status.equals("expired");
+            rows.get(index).setVisibility(visible ? View.VISIBLE : View.GONE);
+            if (visible) visibleCount++;
+        }
+        String label = selected == 0 ? "đang hoạt động" : selected == 1 ? "đã sử dụng" : "hết hạn";
+        emptyView.setText("Không có voucher " + label);
+        emptyView.setVisibility(visibleCount == 0 ? View.VISIBLE : View.GONE);
     }
 
     private LinearLayout voucherInventoryRow(Voucher voucher) {
@@ -350,7 +373,13 @@ public class Member3WorkspaceFragment extends Fragment {
     private TextView[] segmented(String... labels) {
         LinearLayout row = new LinearLayout(requireContext()); row.setPadding(dp(4),dp(4),dp(4),dp(4)); row.setBackground(background(Color.rgb(233,238,233),15));
         TextView[] tabs = new TextView[labels.length];
-        for (int i = 0; i < labels.length; i++) { tabs[i] = text(labels[i],14,i==0); tabs[i].setGravity(Gravity.CENTER); row.addView(tabs[i],new LinearLayout.LayoutParams(0,dp(42),1)); }
+        for (int i = 0; i < labels.length; i++) {
+            tabs[i] = text(labels[i],14,i==0);
+            tabs[i].setGravity(Gravity.CENTER);
+            tabs[i].setClickable(true);
+            tabs[i].setFocusable(true);
+            row.addView(tabs[i],new LinearLayout.LayoutParams(0,dp(48),1));
+        }
         selectSegment(tabs, 0);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1,-2); p.setMargins(0,0,0,dp(16)); content.addView(row,p);
         return tabs;
