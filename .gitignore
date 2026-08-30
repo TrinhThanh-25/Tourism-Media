@@ -51,4 +51,4 @@ venv/
 __pycache__/
 *.pyc
 
-.demo_logs/
+.demo-logs/
