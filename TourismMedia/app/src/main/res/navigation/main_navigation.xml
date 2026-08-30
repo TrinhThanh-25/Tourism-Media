@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_navigation"
+    android:label="@string/app_name"
+    app:startDestination="@id/homeFragment">
+
+    <fragment android:id="@+id/homeFragment" android:name="com.example.tourismmedia.ui.home.HomeFragment" android:label="@string/nav_home" />
+    <fragment android:id="@+id/exploreFragment" android:name="com.example.tourismmedia.ui.explore.ExploreFragment" android:label="@string/nav_explore" />
+    <fragment android:id="@+id/tripsFragment" android:name="com.example.tourismmedia.ui.trips.TripsFragment" android:label="@string/nav_trips" />
+    <fragment android:id="@+id/challengesFragment" android:name="com.example.tourismmedia.ui.challenges.ChallengesFragment" android:label="@string/nav_challenges" />
+    <fragment android:id="@+id/profileFragment" android:name="com.example.tourismmedia.ui.profile.ProfileFragment" android:label="@string/nav_profile" />
+    <fragment android:id="@+id/detailFragment" android:name="com.example.tourismmedia.ui.detail.DetailFragment" android:label="Chi tiết" />
+    <fragment android:id="@+id/accountCollectionFragment" android:name="com.example.tourismmedia.ui.profile.AccountCollectionFragment" android:label="Dữ liệu tài khoản" />
+</navigation>

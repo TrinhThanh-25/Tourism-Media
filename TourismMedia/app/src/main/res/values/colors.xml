@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="forest">#12372A</color>
+    <color name="ink">#17332B</color>
+    <color name="green">#2F6B50</color>
+    <color name="mint">#DFF2E7</color>
+    <color name="cream">#F7F4EC</color>
+    <color name="muted">#718078</color>
+    <color name="line">#E4E8E3</color>
+    <color name="sun">#FFB84D</color>
+    <color name="coral">#ED6A5A</color>
+</resources>
