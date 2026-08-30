@@ -63,6 +63,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Holder
         holder.name.setText(location.name);
         holder.meta.setText(LocationFormatter.meta(location));
         holder.rating.setText(LocationFormatter.rating(location.rating));
+        holder.ratingGroup.setVisibility(location.reviewCount > 0 ? View.VISIBLE : View.GONE);
         holder.price.setText(LocationFormatter.price(holder.price.getContext(), location.price));
         holder.favorite.setImageResource(location.isFavorite()
                 ? R.drawable.ic_favorite_filled
@@ -97,6 +98,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Holder
         final TextView meta;
         final TextView rating;
         final TextView price;
+        final View ratingGroup;
 
         Holder(View view) {
             super(view);
@@ -106,6 +108,7 @@ public class LocationAdapter extends RecyclerView.Adapter<LocationAdapter.Holder
             meta = view.findViewById(R.id.location_meta);
             rating = view.findViewById(R.id.location_rating);
             price = view.findViewById(R.id.location_price);
+            ratingGroup = view.findViewById(R.id.location_rating_group);
         }
     }
 }

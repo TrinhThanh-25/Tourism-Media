@@ -54,6 +54,7 @@ public class SimpleCardAdapter extends RecyclerView.Adapter<SimpleCardAdapter.Ho
     @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
         CardItem item = items.get(position);
         holder.icon.setText(item.icon); holder.title.setText(item.title); holder.subtitle.setText(item.subtitle); holder.meta.setText(item.meta);
+        holder.meta.setVisibility(item.meta == null || item.meta.isBlank() ? View.GONE : View.VISIBLE);
         holder.favorite.setVisibility(item.favoriteVisible ? View.VISIBLE : View.GONE);
         holder.favorite.setText(item.favorite ? "♥" : "♡");
         if (item.imageUrl != null && !item.imageUrl.isBlank()) {

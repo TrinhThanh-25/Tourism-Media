@@ -50,6 +50,7 @@ public class LocationDetailFragment extends Fragment {
     private TextView category;
     private TextView title;
     private TextView rating;
+    private View ratingGroup;
     private TextView address;
     private TextView hours;
     private TextView price;
@@ -105,6 +106,7 @@ public class LocationDetailFragment extends Fragment {
         category = view.findViewById(R.id.detail_category);
         title = view.findViewById(R.id.detail_title);
         rating = view.findViewById(R.id.detail_rating);
+        ratingGroup = view.findViewById(R.id.detail_rating_group);
         address = view.findViewById(R.id.detail_address);
         hours = view.findViewById(R.id.detail_hours);
         price = view.findViewById(R.id.detail_price);
@@ -178,6 +180,7 @@ public class LocationDetailFragment extends Fragment {
         title.setText(data.name);
         rating.setText(LocationFormatter.rating(data.rating)
                 + " · " + LocationFormatter.reviewCount(requireContext(), data.reviewCount));
+        ratingGroup.setVisibility(data.reviewCount > 0 ? View.VISIBLE : View.GONE);
         address.setText(LocationFormatter.orUnknown(requireContext(), data.address));
         hours.setText(openingHours(data));
         price.setText(LocationFormatter.price(requireContext(), data.price));

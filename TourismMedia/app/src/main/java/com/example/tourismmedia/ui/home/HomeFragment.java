@@ -150,8 +150,11 @@ public class HomeFragment extends Fragment {
         }
         heroLocation = data.get(0);
         heroTitle.setText(heroLocation.name);
-        heroSubtitle.setText(LocationFormatter.meta(heroLocation)
-                + "  ·  ★ " + LocationFormatter.rating(heroLocation.rating));
+        String subtitle = LocationFormatter.meta(heroLocation);
+        if (heroLocation.reviewCount > 0) {
+            subtitle += "  ·  ★ " + LocationFormatter.rating(heroLocation.rating);
+        }
+        heroSubtitle.setText(subtitle);
         Glide.with(this)
                 .load(heroLocation.imageUrl)
                 .centerCrop()

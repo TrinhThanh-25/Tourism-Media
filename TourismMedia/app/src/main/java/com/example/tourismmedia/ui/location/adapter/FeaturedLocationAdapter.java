@@ -49,6 +49,7 @@ public class FeaturedLocationAdapter extends RecyclerView.Adapter<FeaturedLocati
         holder.name.setText(location.name);
         holder.meta.setText(LocationFormatter.meta(location));
         holder.rating.setText("★ " + LocationFormatter.rating(location.rating));
+        holder.rating.setVisibility(location.reviewCount > 0 ? View.VISIBLE : View.GONE);
 
         Glide.with(holder.image.getContext())
                 .load(location.imageUrl)
