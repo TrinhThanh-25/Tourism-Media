@@ -10,6 +10,7 @@ Desktop.ini
 *.iml
 .idea/
 .vscode/
+.fleet/
 *.swp
 *.swo
 *~
@@ -19,6 +20,10 @@ Desktop.ini
 .env.*
 !.env.example
 local.properties
+keystore.properties
+secrets.properties
+google-services.json
+.npmrc
 *.jks
 *.keystore
 *.p12
@@ -26,6 +31,7 @@ local.properties
 
 # Android / Gradle generated files
 .gradle/
+.kotlin/
 **/build/
 captures/
 .externalNativeBuild/
@@ -35,6 +41,7 @@ captures/
 *.ap_
 *.dex
 *.class
+*.hprof
 
 # Node.js generated files
 node_modules/
@@ -50,18 +57,28 @@ pnpm-debug.log*
 # Runtime databases; keep the committed bootstrap database
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.sqlite3
 *.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 !Travel-App-Server/travel_app.template.db
 /Travel-App-Server/data/
+/Travel-App-Server/uploads/
+/Travel-App-Server/public/uploads/
 
 # Temporary files and archives
 tmp/
 temp/
 *.tmp
 *.temp
+*.orig
+*.rej
 *.tgz
 *.zip
 
