@@ -50,8 +50,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
             NavOptions options = new NavOptions.Builder()
-                    .setPopUpTo(R.id.homeFragment, false)
+                    .setPopUpTo(R.id.homeFragment, false, true)
                     .setLaunchSingleTop(true)
+                    .setRestoreState(true)
                     .build();
             navController.navigate(destinationId, null, options);
             return true;
