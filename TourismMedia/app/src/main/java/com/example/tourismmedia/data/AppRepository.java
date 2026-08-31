@@ -2,6 +2,9 @@ package com.example.tourismmedia.data;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 
@@ -29,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +62,9 @@ public class AppRepository {
     }
 
     private static final String OFFLINE = "Không kết nối được máy chủ";
+    private static final long CACHE_TTL_MS = 2 * 60 * 1000L;
+    private static final long[] NETWORK_RETRY_DELAYS_MS = {600L, 1500L};
+    private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
     private static final Gson GSON = new Gson();
 
     private static volatile AppRepository instance;
@@ -65,6 +72,17 @@ public class AppRepository {
     private final ApiService api;
     private final SessionManager session;
     private final Context context;
+    private final Map<String, CacheEntry> memoryCache = new ConcurrentHashMap<>();
+
+    private static final class CacheEntry {
+        final Object value;
+        final long storedAt;
+
+        CacheEntry(Object value) {
+            this.value = value;
+            this.storedAt = SystemClock.elapsedRealtime();
+        }
+    }
 
     private AppRepository(Context context) {
         this.context = context.getApplicationContext();
@@ -117,10 +135,12 @@ public class AppRepository {
         api.logout(body).enqueue(new Callback<>() {
             @Override public void onResponse(@NonNull Call<Message> call, @NonNull Response<Message> response) {
                 session.clear();
+                clearCache();
                 result.onResult(response.body(), response.isSuccessful() ? null : errorOf(response, "Đăng xuất thất bại"), false);
             }
             @Override public void onFailure(@NonNull Call<Message> call, @NonNull Throwable throwable) {
                 session.clear();
+                clearCache();
                 result.onResult(null, null, false);
             }
         });
@@ -136,6 +156,7 @@ public class AppRepository {
                     return;
                 }
                 session.save(body, email);
+                clearCache();
                 result.onResult(body, null, false);
             }
 
@@ -165,46 +186,49 @@ public class AppRepository {
             params.put("max_price", String.valueOf(maxPrice.longValue()));
         }
         put(params, "sort_by", sort);
-        list(api.locations(session.authorization(), params), result);
+        cachedList(key("locations", params), api.locations(session.authorization(), params), result);
     }
 
     public void location(long id, Result<Location> result) {
-        single(api.location(session.authorization(), id), result, "Không thể tải địa điểm này");
+        cachedSingle(key("location", id), api.location(session.authorization(), id), result, "Không thể tải địa điểm này");
     }
 
     public void nearbyLocations(double latitude, double longitude, double radiusKm, int limit,
                                 Result<List<Location>> result) {
-        list(api.nearbyLocations(session.authorization(), latitude, longitude, radiusKm, limit), result);
+        cachedList(key("nearby", latitude, longitude, radiusKm, limit),
+                api.nearbyLocations(session.authorization(), latitude, longitude, radiusKm, limit), result);
     }
 
     public void locationImages(long id, Result<List<LocationImage>> result) {
-        list(api.locationImages(id), result);
+        cachedList(key("locationImages", id), api.locationImages(id), result);
     }
 
     public void favoriteLocations(Result<List<Location>> result) {
-        list(api.favoriteLocations(session.authorization()), result);
+        cachedList(key("favoriteLocations"), api.favoriteLocations(session.authorization()), result);
     }
 
     public void favoriteLocation(long id, boolean alreadyFavorite, Result<Message> result) {
         String auth = session.authorization();
-        message(alreadyFavorite ? api.removeFavoriteLocation(auth, id) : api.addFavoriteLocation(auth, id), result);
+        message(alreadyFavorite ? api.removeFavoriteLocation(auth, id) : api.addFavoriteLocation(auth, id), invalidating(result));
     }
 
     public void checkIn(long locationId, Result<Message> result) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("location_id", locationId);
-        message(api.checkIn(session.authorization(), body), result);
+        message(api.checkIn(session.authorization(), body), invalidating(result));
     }
 
     public void checkIns(Result<List<Location>> result) {
-        list(api.checkIns(session.authorization()), result);
+        cachedList(key("checkIns"), api.checkIns(session.authorization()), result);
     }
 
     public void recordLocationRead(long locationId) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("location_id", locationId);
         api.recordLocationRead(session.authorization(), body).enqueue(new Callback<>() {
-            @Override public void onResponse(@NonNull Call<Message> call, @NonNull Response<Message> response) { }
+            @Override public void onResponse(@NonNull Call<Message> call, @NonNull Response<Message> response) {
+                if (response.isSuccessful()) invalidateMatching("myChallenges", "challengeProgress");
+            }
             @Override public void onFailure(@NonNull Call<Message> call, @NonNull Throwable throwable) { }
         });
     }
@@ -241,7 +265,7 @@ public class AppRepository {
     // ------------------------------------------------------ location reviews
 
     public void locationReviews(long locationId, Result<List<Review>> result) {
-        list(api.locationReviews(locationId), result);
+        cachedList(key("locationReviews", locationId), api.locationReviews(locationId), result);
     }
 
     public void createLocationReview(long locationId, int rating, String comment, Result<Review> result) {
@@ -249,24 +273,24 @@ public class AppRepository {
         body.put("location_id", locationId);
         body.put("rating", rating);
         body.put("comment", comment);
-        single(api.createLocationReview(session.authorization(), body), result, "Không thể gửi đánh giá");
+        single(api.createLocationReview(session.authorization(), body), invalidating(result), "Không thể gửi đánh giá");
     }
 
     public void updateLocationReview(long reviewId, int rating, String comment, Result<Review> result) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("rating", rating);
         body.put("comment", comment);
-        single(api.updateLocationReview(session.authorization(), reviewId, body), result, "Không thể cập nhật đánh giá");
+        single(api.updateLocationReview(session.authorization(), reviewId, body), invalidating(result), "Không thể cập nhật đánh giá");
     }
 
     public void deleteLocationReview(long reviewId, Result<Message> result) {
-        message(api.deleteLocationReview(session.authorization(), reviewId), result);
+        message(api.deleteLocationReview(session.authorization(), reviewId), invalidating(result));
     }
 
     // --------------------------------------------------------------- account
 
     public void profile(Result<Profile> result) {
-        single(api.profile(session.authorization()), result, "Không thể tải hồ sơ");
+        cachedSingle(key("profile"), api.profile(session.authorization()), result, "Không thể tải hồ sơ");
     }
 
     public void updateProfile(String username, Result<String> result) {
@@ -279,6 +303,7 @@ public class AppRepository {
                 if (!response.isSuccessful() || body == null) {
                     result.onResult(null, errorOf(response, "Không thể cập nhật hồ sơ"), false);
                 } else {
+                    clearCache();
                     result.onResult(body.message == null ? "Đã cập nhật hồ sơ" : body.message, null, false);
                 }
             }
@@ -299,7 +324,10 @@ public class AppRepository {
         }
         api.updateProfile(session.authorization(), body).enqueue(new Callback<>() {
             @Override public void onResponse(@NonNull Call<ProfileUpdate> call, @NonNull Response<ProfileUpdate> response) {
-                if (response.isSuccessful()) result.onResult("Cập nhật hồ sơ thành công", null, false);
+                if (response.isSuccessful()) {
+                    clearCache();
+                    result.onResult("Cập nhật hồ sơ thành công", null, false);
+                }
                 else result.onResult(null, errorOf(response, "Không thể cập nhật hồ sơ"), false);
             }
             @Override public void onFailure(@NonNull Call<ProfileUpdate> call, @NonNull Throwable throwable) {
@@ -312,23 +340,23 @@ public class AppRepository {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("old_password", oldPassword);
         body.put("new_password", newPassword);
-        message(api.updatePassword(session.authorization(), body), result);
+        message(api.updatePassword(session.authorization(), body), invalidating(result));
     }
 
     public void vouchers(Result<List<Voucher>> result) {
-        list(api.vouchers(session.authorization()), result);
+        cachedList(key("vouchers"), api.vouchers(session.authorization()), result);
     }
 
     public void useVoucher(long voucherId, Result<Message> result) {
-        message(api.useVoucher(session.authorization(), voucherId), result);
+        message(api.useVoucher(session.authorization(), voucherId), invalidating(result));
     }
 
     public void points(Result<PointsBalance> result) {
-        single(api.points(session.authorization()), result, "Không tải được số điểm");
+        cachedSingle(key("points"), api.points(session.authorization()), result, "Không tải được số điểm");
     }
 
     public void pointTransactions(Result<List<PointTransaction>> result) {
-        list(api.pointTransactions(session.authorization()), result);
+        cachedList(key("pointTransactions"), api.pointTransactions(session.authorization()), result);
     }
 
     // ----------------------------------------------------------------- trips
@@ -354,6 +382,8 @@ public class AppRepository {
         if (minTime != null) params.put("min_time", String.valueOf(minTime));
         if (maxTime != null) params.put("max_time", String.valueOf(maxTime));
         put(params, "sort", sort);
+        String cacheKey = key("trips", params);
+        if (deliverCached(cacheKey, result)) return;
         api.trips(session.authorization(), params).enqueue(new Callback<>() {
             @Override
             public void onResponse(@NonNull Call<TripPage> call, @NonNull Response<TripPage> response) {
@@ -361,6 +391,7 @@ public class AppRepository {
                 if (!response.isSuccessful() || body == null || body.data == null) {
                     result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải chuyến đi"), false);
                 } else {
+                    memoryCache.put(cacheKey, new CacheEntry(new ArrayList<>(body.data)));
                     result.onResult(body.data, null, false);
                 }
             }
@@ -373,7 +404,7 @@ public class AppRepository {
     }
 
     public void trip(long id, Result<Trip> result) {
-        single(api.trip(session.authorization(), id), result, "Không thể tải chuyến đi này");
+        cachedSingle(key("trip", id), api.trip(session.authorization(), id), result, "Không thể tải chuyến đi này");
     }
 
     public void createTrip(String title, String description, Result<Trip> result) {
@@ -381,34 +412,34 @@ public class AppRepository {
         body.put("title", title);
         body.put("description", description);
         body.put("locations", new ArrayList<>());
-        single(api.createTrip(session.authorization(), body), result, "Không thể tạo chuyến đi");
+        single(api.createTrip(session.authorization(), body), invalidating(result), "Không thể tạo chuyến đi");
     }
 
     public void saveTrip(Long id, Map<String, Object> body, Result<Trip> result) {
         Call<Trip> call = id == null
                 ? api.createTrip(session.authorization(), body)
                 : api.updateTrip(session.authorization(), id, body);
-        single(call, result, "Không thể lưu chuyến đi");
+        single(call, invalidating(result), "Không thể lưu chuyến đi");
     }
 
     public void setTripPublished(long id, boolean publish, Result<Trip> result) {
         single(publish
                 ? api.publishTrip(session.authorization(), id)
                 : api.unpublishTrip(session.authorization(), id),
-                result, publish ? "Không thể đăng chuyến đi" : "Không thể gỡ chuyến đi");
+                invalidating(result), publish ? "Không thể đăng chuyến đi" : "Không thể gỡ chuyến đi");
     }
 
     public void myTrips(Result<List<Trip>> result) {
-        list(api.myTrips(session.authorization()), result);
+        cachedList(key("myTrips"), api.myTrips(session.authorization()), result);
     }
 
     public void favoriteTrips(Result<List<Trip>> result) {
-        list(api.favoriteTrips(session.authorization()), result);
+        cachedList(key("favoriteTrips"), api.favoriteTrips(session.authorization()), result);
     }
 
     public void favoriteTrip(long id, boolean alreadyFavorite, Result<Message> result) {
         String auth = session.authorization();
-        message(alreadyFavorite ? api.removeFavoriteTrip(auth, id) : api.addFavoriteTrip(auth, id), result);
+        message(alreadyFavorite ? api.removeFavoriteTrip(auth, id) : api.addFavoriteTrip(auth, id), invalidating(result));
     }
 
     public void favoriteTrip(long id, Result<Message> result) {
@@ -416,7 +447,7 @@ public class AppRepository {
     }
 
     public void tripReviews(long tripId, Result<List<TripReview>> result) {
-        list(api.tripReviews(session.authorization(), tripId), result);
+        cachedList(key("tripReviews", tripId), api.tripReviews(session.authorization(), tripId), result);
     }
 
     public void createTripReview(long tripId, int rating, String comment, Result<TripReview> result) {
@@ -424,45 +455,45 @@ public class AppRepository {
         body.put("trip_id", tripId);
         body.put("rating", rating);
         body.put("comment", comment);
-        single(api.createTripReview(session.authorization(), body), result, "Không thể gửi đánh giá");
+        single(api.createTripReview(session.authorization(), body), invalidating(result), "Không thể gửi đánh giá");
     }
 
     // ---------------------------------------------------- challenges/rewards
 
     public void challenges(Result<List<Challenge>> result) {
-        list(api.challenges(), result);
+        cachedList(key("challenges"), api.challenges(), result);
     }
 
     public void myChallenges(Result<List<Challenge>> result) {
-        list(api.myChallenges(session.authorization()), result);
+        cachedList(key("myChallenges"), api.myChallenges(session.authorization()), result);
     }
 
     public void challenge(long id, Result<Challenge> result) {
-        single(api.challengeProgress(session.authorization(), id), result, "Không tải được tiến độ thử thách");
+        cachedSingle(key("challengeProgress", id), api.challengeProgress(session.authorization(), id), result, "Không tải được tiến độ thử thách");
     }
 
     public void challengeInfo(long id, Result<Challenge> result) {
-        single(api.challenge(id), result, "Không thể tải thử thách này");
+        cachedSingle(key("challengeInfo", id), api.challenge(id), result, "Không thể tải thử thách này");
     }
 
     public void joinChallenge(long id, Result<Message> result) {
-        message(api.joinChallenge(session.authorization(), id), result);
+        message(api.joinChallenge(session.authorization(), id), invalidating(result));
     }
 
     public void completeChallenge(long id, Result<Message> result) {
-        message(api.completeChallenge(session.authorization(), id), result);
+        message(api.completeChallenge(session.authorization(), id), invalidating(result));
     }
 
     public void rewards(Result<RewardCatalog> result) {
-        single(api.rewardCatalog(session.authorization()), result, "Không thể tải phần thưởng");
+        cachedSingle(key("rewards"), api.rewardCatalog(session.authorization()), result, "Không thể tải phần thưởng");
     }
 
     public void reward(long id, Result<Reward> result) {
-        single(api.reward(id), result, "Không thể tải phần thưởng");
+        cachedSingle(key("reward", id), api.reward(id), result, "Không thể tải phần thưởng");
     }
 
     public void redeem(long rewardId, Result<Message> result) {
-        message(api.redeemReward(session.authorization(), rewardId), result);
+        message(api.redeemReward(session.authorization(), rewardId), invalidating(result));
     }
 
     // --------------------------------------------------------------- helpers
@@ -471,6 +502,110 @@ public class AppRepository {
         if (value != null && !value.isBlank()) {
             params.put(key, value);
         }
+    }
+
+    private String key(String resource, Object... parts) {
+        StringBuilder value = new StringBuilder("user:")
+                .append(session.userId()).append('|').append(resource);
+        for (Object part : parts) value.append('|').append(String.valueOf(part));
+        return value.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> boolean deliverCached(String cacheKey, Result<T> result) {
+        CacheEntry cached = memoryCache.get(cacheKey);
+        if (cached == null) return false;
+        if (SystemClock.elapsedRealtime() - cached.storedAt > CACHE_TTL_MS) {
+            memoryCache.remove(cacheKey, cached);
+            return false;
+        }
+        result.onResult((T) cached.value, null, false);
+        return true;
+    }
+
+    private void clearCache() {
+        memoryCache.clear();
+    }
+
+    private void invalidateMatching(String... resources) {
+        memoryCache.keySet().removeIf(cacheKey -> {
+            for (String resource : resources) {
+                if (cacheKey.contains("|" + resource)) return true;
+            }
+            return false;
+        });
+    }
+
+    private <T> Result<T> invalidating(Result<T> result) {
+        return (data, error, sample) -> {
+            if (error == null) clearCache();
+            result.onResult(data, error, sample);
+        };
+    }
+
+    private <T> void cachedList(String cacheKey, Call<List<T>> call, Result<List<T>> result) {
+        if (deliverCached(cacheKey, result)) return;
+        enqueueCachedList(cacheKey, call, result, 0);
+    }
+
+    private <T> void enqueueCachedList(String cacheKey, Call<List<T>> call,
+                                       Result<List<T>> result, int attempt) {
+        call.enqueue(new Callback<>() {
+            @Override
+            public void onResponse(@NonNull Call<List<T>> call, @NonNull Response<List<T>> response) {
+                List<T> body = response.body();
+                if (!response.isSuccessful() || body == null) {
+                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải dữ liệu"), false);
+                } else {
+                    List<T> snapshot = new ArrayList<>(body);
+                    memoryCache.put(cacheKey, new CacheEntry(snapshot));
+                    result.onResult(snapshot, null, false);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<T>> call, @NonNull Throwable throwable) {
+                if (attempt < NETWORK_RETRY_DELAYS_MS.length) {
+                    MAIN_HANDLER.postDelayed(
+                            () -> enqueueCachedList(cacheKey, call.clone(), result, attempt + 1),
+                            NETWORK_RETRY_DELAYS_MS[attempt]);
+                    return;
+                }
+                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
+            }
+        });
+    }
+
+    private <T> void cachedSingle(String cacheKey, Call<T> call, Result<T> result, String failureMessage) {
+        if (deliverCached(cacheKey, result)) return;
+        enqueueCachedSingle(cacheKey, call, result, failureMessage, 0);
+    }
+
+    private <T> void enqueueCachedSingle(String cacheKey, Call<T> call, Result<T> result,
+                                         String failureMessage, int attempt) {
+        call.enqueue(new Callback<>() {
+            @Override
+            public void onResponse(@NonNull Call<T> call, @NonNull Response<T> response) {
+                T body = response.body();
+                if (!response.isSuccessful() || body == null) {
+                    result.onResult(null, errorOf(response, failureMessage), false);
+                } else {
+                    memoryCache.put(cacheKey, new CacheEntry(body));
+                    result.onResult(body, null, false);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<T> call, @NonNull Throwable throwable) {
+                if (attempt < NETWORK_RETRY_DELAYS_MS.length) {
+                    MAIN_HANDLER.postDelayed(
+                            () -> enqueueCachedSingle(cacheKey, call.clone(), result, failureMessage, attempt + 1),
+                            NETWORK_RETRY_DELAYS_MS[attempt]);
+                    return;
+                }
+                result.onResult(null, failureMessage + " (máy chủ không phản hồi)", false);
+            }
+        });
     }
 
     /** List requests return only server data and never hand a null list to callers. */

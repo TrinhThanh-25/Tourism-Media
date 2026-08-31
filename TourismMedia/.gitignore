@@ -5,6 +5,8 @@
 # Local SDK and signing configuration
 /local.properties
 keystore.properties
+secrets.properties
+google-services.json
 *.jks
 *.keystore
 
@@ -21,6 +23,7 @@ keystore.properties
 *.ap_
 *.dex
 *.class
+*.hprof
 
 # OS/editor files
 .DS_Store
