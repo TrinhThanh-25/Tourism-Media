@@ -1,6 +1,6 @@
 const configuredSecret = process.env.JWT_SECRET?.trim();
 if (!configuredSecret || configuredSecret === "replace-with-a-long-random-secret") {
-  throw new Error("JWT_SECRET is required. Copy .env.example to .env and set a private value.");
+  throw new Error("JWT_SECRET is required. Copy the root .env.example to .env and set a private value.");
 }
 
 export const JWT_SECRET = configuredSecret;

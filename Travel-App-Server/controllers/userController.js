@@ -1,6 +1,6 @@
-import bcrypt from "bcryptjs";
 import { all, get, run } from "../db/queries.js";
 import { BCRYPT_ROUNDS } from "../config/auth.js";
+import { hashPassword, passwordMatches } from "../db/passwords.js";
 import { buildChallengesProgress } from "./challengeController.js";
 
 export const updateUserProfile = async (req, res) => {
@@ -25,10 +25,9 @@ export const updateUserPassword = async (req, res) => {
   try {
     const user = await get("SELECT password FROM users WHERE id=?", [req.user.id]);
     if (!user) return res.status(404).json({ error:"User not found" });
-    const isHash = /^\$2[aby]\$/.test(user.password || "");
-    const valid = isHash ? await bcrypt.compare(req.body.old_password,user.password) : req.body.old_password === user.password;
+    const valid = await passwordMatches(req.body.old_password,user.password);
     if (!valid) return res.status(400).json({ error:"Old password is incorrect" });
-    const passwordHash = await bcrypt.hash(req.body.new_password,BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(req.body.new_password,BCRYPT_ROUNDS);
     await run("UPDATE users SET password=? WHERE id=?", [passwordHash,req.user.id]);
     res.json({ message:"Password updated" });
   } catch { res.status(500).json({ error:"Password update failed" }); }

@@ -5,9 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "test": "node scripts/smokeReviewFixes.js && node scripts/smokeReviewPrivacyAndProgress.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -22,8 +20,5 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "sqlite3": "^6.0.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
   }
 }

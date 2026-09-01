@@ -5,9 +5,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { UPLOAD_DIR } from "./config/uploads.js";
 
-// Load .env relative to this server file so running node from another cwd still
-// picks up the backend `.env` (ensures DB_PATH and other settings are correct).
-dotenv.config({ path: new URL('./.env', import.meta.url).pathname });
+// Configuration lives at the repository root so collaborators can find it
+// immediately. Resolving from this file keeps `npm start` independent of cwd.
+dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 // Import DB dynamically after dotenv is configured so DB can read DB_PATH
 const dbModule = await import("./db/connect.js");
 const db = dbModule.default;
@@ -103,34 +103,5 @@ app.get('/api', (req, res) => {
 	});
 });
 
-// Proxy Chat to external Python Chat API (set CHAT_API_URL in env). If not configured, return 501.
-app.post('/api/chat', async (req, res) => {
-	const target = process.env.CHAT_API_URL;
-	if (!target) {
-		return res.status(501).json({ error: 'CHAT_API_URL not configured' });
-	}
-	try {
-		const resp = await fetch(target, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(req.body || {})
-		});
-		const contentType = resp.headers.get('content-type') || '';
-		res.status(resp.status);
-		if (contentType.includes('application/json')) {
-			const data = await resp.json();
-			return res.json(data);
-		}
-		const text = await resp.text();
-		return res.send(text);
-	} catch (e) {
-		return res.status(502).json({ error: 'Failed to reach Chat API', detail: e.message });
-	}
-});
-
 const PORT = process.env.PORT || 3000;
-export default app;
-
-if (process.env.NODE_ENV !== 'test') {
-	app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} (CORS allowed: ${corsOrigin})`));
-}
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} (CORS allowed: ${corsOrigin})`));

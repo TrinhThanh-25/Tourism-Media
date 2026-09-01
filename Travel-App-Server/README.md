@@ -6,7 +6,7 @@ thử thách, điểm, phần thưởng và voucher.
 ## Cài đặt
 
 ```bash
-cp .env.example .env
+cp ../.env.example ../.env
 npm install
 npm start
 ```
@@ -19,14 +19,16 @@ Schema hiện tại nằm trong `db/schema.js`. Các thay đổi dữ liệu n�
 `db/migrations.js` và được ghi nhận ở bảng `schema_migrations`, nên mỗi migration
 chỉ chạy một lần.
 
-Mọi môi trường đều bắt buộc cấu hình `JWT_SECRET`. Đặt `ADMIN_EMAILS` thành danh
+Backend luôn đọc `.env` tại thư mục gốc của repository, kể cả khi `npm start`
+được gọi bên trong `Travel-App-Server`. Mọi môi trường đều bắt buộc cấu hình
+`JWT_SECRET`. Đặt `ADMIN_EMAILS` thành danh
 sách email phân cách bằng dấu phẩy để cấp role admin khi khởi động. Ảnh upload
 được lưu trong `UPLOAD_DIR`; `PUBLIC_BASE_URL` phải là địa chỉ mà emulator hoặc
 điện thoại có thể truy cập để URL ảnh dùng được trên các client khác.
 
 ## Xác thực và phân quyền
 
-- Mật khẩu được hash bằng bcrypt; tài khoản plaintext cũ được nâng cấp khi đăng nhập.
+- Mật khẩu luôn được hash bằng bcrypt trước khi lưu và chỉ được kiểm tra bằng bcrypt.
 - Refresh token chỉ được lưu dưới dạng SHA-256 và được xoay vòng khi refresh.
 - JWT chứa `id`, `username`, `role`; thao tác cá nhân luôn lấy user từ JWT.
 - Tạo thử thách/phần thưởng, cấp voucher và chỉnh điểm yêu cầu role `admin`.

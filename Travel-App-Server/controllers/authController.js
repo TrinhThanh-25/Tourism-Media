@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
 import { get, run, transaction } from "../db/queries.js";
 import { ACCESS_EXPIRES_IN, BCRYPT_ROUNDS, JWT_SECRET, REFRESH_TTL_DAYS } from "../config/auth.js";
+import { hashPassword, passwordMatches } from "../db/passwords.js";
 
 const hashToken = token => crypto.createHash("sha256").update(token).digest("hex");
 const createRefreshToken = () => crypto.randomBytes(48).toString("hex");
@@ -23,7 +23,7 @@ async function storeRefreshToken(userId, rawToken, queries = { run }) {
 export const register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(password, BCRYPT_ROUNDS);
     const refreshToken = createRefreshToken();
     const user = await transaction(async queries => {
       const result = await queries.run(
@@ -47,13 +47,8 @@ export const login = async (req, res) => {
     const user = await get("SELECT * FROM users WHERE email = ?", [email.toLowerCase()]);
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-    const isHash = /^\$2[aby]\$/.test(user.password || "");
-    const valid = isHash ? await bcrypt.compare(password, user.password) : password === user.password;
+    const valid = await passwordMatches(password, user.password);
     if (!valid) return res.status(401).json({ error: "Invalid credentials" });
-    if (!isHash) {
-      const upgradedHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-      await run("UPDATE users SET password = ? WHERE id = ?", [upgradedHash, user.id]);
-    }
 
     const refreshToken = createRefreshToken();
     await storeRefreshToken(user.id, refreshToken);
@@ -82,7 +77,7 @@ export const forgotPassword = async (req, res) => {
     const email = req.body.email.toLowerCase();
     const user = await get("SELECT id FROM users WHERE lower(email) = ?", [email]);
     if (!user) return res.status(404).json({ error: "Không tìm thấy tài khoản với email này" });
-    const passwordHash = await bcrypt.hash(req.body.new_password, BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(req.body.new_password, BCRYPT_ROUNDS);
     await transaction(async queries => {
       await queries.run("UPDATE users SET password = ? WHERE id = ?", [passwordHash, user.id]);
       await queries.run("UPDATE user_refresh_tokens SET revoked = 1 WHERE user_id = ?", [user.id]);
