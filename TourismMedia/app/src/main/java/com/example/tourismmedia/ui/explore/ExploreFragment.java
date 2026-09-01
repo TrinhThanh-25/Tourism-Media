@@ -139,7 +139,7 @@ public class ExploreFragment extends Fragment {
     private void load() {
         progress.setVisibility(View.VISIBLE);
         empty.setVisibility(View.GONE);
-        repository.locations(query, category, type, minPrice, maxPrice, sort, (data, error, sample) -> {
+        repository.locations(query, category, type, minPrice, maxPrice, sort, (data, error) -> {
             if (!isAdded() || getView() == null) {
                 return;
             }
@@ -287,7 +287,7 @@ public class ExploreFragment extends Fragment {
 
     private void toggleFavorite(Location location, int position) {
         boolean wasFavorite = location.isFavorite();
-        repository.favoriteLocation(location.id, wasFavorite, (message, error, sample) -> {
+        repository.favoriteLocation(location.id, wasFavorite, (message, error) -> {
             if (!isAdded()) {
                 return;
             }

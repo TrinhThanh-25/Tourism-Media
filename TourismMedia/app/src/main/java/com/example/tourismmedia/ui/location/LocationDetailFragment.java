@@ -156,7 +156,7 @@ public class LocationDetailFragment extends Fragment {
     // ------------------------------------------------------------------ load
 
     private void loadLocation() {
-        repository.location(locationId, (data, error, sample) -> {
+        repository.location(locationId, (data, error) -> {
             if (!isAdded() || getView() == null) {
                 return;
             }
@@ -213,7 +213,7 @@ public class LocationDetailFragment extends Fragment {
             submitGallery(images);
             return;
         }
-        repository.locationImages(data.id, (fetched, error, sample) -> {
+        repository.locationImages(data.id, (fetched, error) -> {
             if (!isAdded() || getView() == null) {
                 return;
             }
@@ -243,7 +243,7 @@ public class LocationDetailFragment extends Fragment {
     }
 
     private void loadReviews() {
-        repository.locationReviews(locationId, (data, error, sample) -> {
+        repository.locationReviews(locationId, (data, error) -> {
             if (!isAdded() || getView() == null) {
                 return;
             }
@@ -269,7 +269,7 @@ public class LocationDetailFragment extends Fragment {
             return;
         }
         boolean wasFavorite = location.isFavorite();
-        repository.favoriteLocation(location.id, wasFavorite, (message, error, sample) -> {
+        repository.favoriteLocation(location.id, wasFavorite, (message, error) -> {
             if (!isAdded()) {
                 return;
             }
@@ -288,7 +288,7 @@ public class LocationDetailFragment extends Fragment {
             return;
         }
         checkIn.setEnabled(false);
-        repository.checkIn(location.id, (message, error, sample) -> {
+        repository.checkIn(location.id, (message, error) -> {
             if (!isAdded()) {
                 return;
             }
@@ -347,7 +347,7 @@ public class LocationDetailFragment extends Fragment {
     }
 
     private void submitReview(Review existing, int stars, String comment) {
-        AppRepository.Result<Review> callback = (data, error, sample) -> {
+        AppRepository.Result<Review> callback = (data, error) -> {
             if (!isAdded()) {
                 return;
             }
@@ -388,7 +388,7 @@ public class LocationDetailFragment extends Fragment {
     }
 
     private void deleteReview(Review review) {
-        repository.deleteLocationReview(review.id, (message, error, sample) -> {
+        repository.deleteLocationReview(review.id, (message, error) -> {
             if (!isAdded()) {
                 return;
             }

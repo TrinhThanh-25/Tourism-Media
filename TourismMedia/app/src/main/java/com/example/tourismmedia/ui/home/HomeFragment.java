@@ -86,7 +86,7 @@ public class HomeFragment extends Fragment {
         avatar.setText(LocationFormatter.initials(username));
         avatar.setOnClickListener(v -> navigate(R.id.profileFragment, null));
         avatarImage.setOnClickListener(v -> navigate(R.id.profileFragment, null));
-        repository.profile((profile, error, stale) -> {
+        repository.profile((profile, error) -> {
             if (!isAdded() || getView() == null || profile == null) return;
             boolean hasAvatar = profile.avatar != null && !profile.avatar.isBlank();
             avatar.setVisibility(hasAvatar ? View.GONE : View.VISIBLE);
@@ -123,7 +123,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void load() {
-        repository.locations("", (data, error, sample) -> {
+        repository.locations("", (data, error) -> {
             if (!isAdded() || getView() == null) {
                 return;
             }
@@ -175,7 +175,7 @@ public class HomeFragment extends Fragment {
 
     private void toggleFavorite(Location location, int position) {
         boolean wasFavorite = location.isFavorite();
-        repository.favoriteLocation(location.id, wasFavorite, (message, error, sample) -> {
+        repository.favoriteLocation(location.id, wasFavorite, (message, error) -> {
             if (!isAdded()) {
                 return;
             }
