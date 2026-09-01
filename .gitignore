@@ -41,7 +41,8 @@ yarn-error.log*
 *.sqlite
 *.sqlite3
 !Travel-App-Server/travel_app.template.db
-**/data/
+# Server runtime database directory only (NOT Android source packages named data/)
+Travel-App-Server/data/
 
 # Temporary and Python-generated files
 tmp/
@@ -52,3 +53,7 @@ __pycache__/
 *.pyc
 
 .demo-logs/
+
+
+# Markdown file
+TASK.md
