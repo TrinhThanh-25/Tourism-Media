@@ -35,6 +35,13 @@ public class MainActivity extends AppCompatActivity {
         BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
         NavigationUI.setupWithNavController(bottomNavigation, navController);
         navController.addOnDestinationChangedListener((controller, destination, arguments) ->
-                bottomNavigation.setVisibility(destination.getId() == R.id.detailFragment || destination.getId() == R.id.accountCollectionFragment ? View.GONE : View.VISIBLE));
+                bottomNavigation.setVisibility(isFullScreenDestination(destination.getId()) ? View.GONE : View.VISIBLE));
+    }
+
+    /** Destinations that own the whole screen and hide the bottom bar. */
+    private static boolean isFullScreenDestination(int destinationId) {
+        return destinationId == R.id.detailFragment
+                || destinationId == R.id.locationDetailFragment
+                || destinationId == R.id.accountCollectionFragment;
     }
 }
