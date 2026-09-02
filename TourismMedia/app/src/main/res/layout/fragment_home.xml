@@ -47,15 +47,13 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/home_avatar"
+            <FrameLayout
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/bg_hero"
-                android:gravity="center"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_hero">
+                <TextView android:id="@+id/home_avatar" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textColor="@color/white" android:textSize="16sp" android:textStyle="bold" />
+                <ImageView android:id="@+id/home_avatar_image" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="Ảnh đại diện" android:scaleType="centerCrop" android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
 
         <!-- Search box: tapping it opens Explore -->

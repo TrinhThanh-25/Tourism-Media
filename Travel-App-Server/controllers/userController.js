@@ -64,7 +64,8 @@ export const getUserChallenges = async (req, res) => {
       const result = await buildChallengeProgress(challenge,req.user.id);
       return {
         ...result,
-        status: challenge.status === "claimed" ? "claimed" : result.eligible ? "eligible" : challenge.status
+        status: challenge.status === "claimed" ? "claimed"
+          : result.joined && result.eligible ? "eligible" : challenge.status
       };
     })));
   } catch { res.status(500).json({ error:"Could not load challenges" }); }

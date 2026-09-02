@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tourismmedia.R;
+import com.example.tourismmedia.ui.location.LocationFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,8 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
         void onCategory(String category);
     }
 
-    private final List<String> labels = new ArrayList<>();
+    private final List<String> values = new ArrayList<>();
+    private String allLabel;
     private final OnCategorySelected listener;
     private int selected = 0;
 
@@ -34,17 +36,18 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
 
     /** @param categories distinct category names; the "All" chip is prepended here */
     public void submit(String allLabel, List<String> categories) {
-        labels.clear();
-        labels.add(allLabel);
-        labels.addAll(categories);
-        if (selected >= labels.size()) {
+        this.allLabel = allLabel;
+        values.clear();
+        values.add(null);
+        values.addAll(categories);
+        if (selected >= values.size()) {
             selected = 0;
         }
         notifyDataSetChanged();
     }
 
     public void select(String category) {
-        int index = category == null ? 0 : labels.indexOf(category);
+        int index = category == null ? 0 : values.indexOf(category);
         selected = Math.max(0, index);
         notifyDataSetChanged();
     }
@@ -59,7 +62,8 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
         boolean active = position == selected;
-        holder.label.setText(labels.get(position));
+        String value = values.get(position);
+        holder.label.setText(position == 0 ? allLabel : LocationFormatter.categoryLabel(value));
         holder.label.setSelected(active);
         holder.label.setTextColor(ContextCompat.getColor(holder.label.getContext(),
                 active ? R.color.white : R.color.ink));
@@ -68,13 +72,13 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
             selected = holder.getBindingAdapterPosition();
             notifyItemChanged(previous);
             notifyItemChanged(selected);
-            listener.onCategory(selected == 0 ? null : labels.get(selected));
+            listener.onCategory(values.get(selected));
         });
     }
 
     @Override
     public int getItemCount() {
-        return labels.size();
+        return values.size();
     }
 
     static class Holder extends RecyclerView.ViewHolder {

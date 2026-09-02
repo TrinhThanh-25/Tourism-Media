@@ -22,11 +22,9 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="0dp"
-        android:layout_height="76dp"
+        android:layout_height="wrap_content"
         android:background="@color/white"
         app:itemIconTint="@color/nav_item_color"
-        app:itemTextAppearanceActive="@style/TourismBottomText"
-        app:itemTextAppearanceInactive="@style/TourismBottomText"
         app:itemTextColor="@color/nav_item_color"
         app:itemRippleColor="@color/mint"
         app:labelVisibilityMode="labeled"

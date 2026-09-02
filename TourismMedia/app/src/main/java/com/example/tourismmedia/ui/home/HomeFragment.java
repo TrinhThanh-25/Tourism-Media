@@ -18,7 +18,6 @@ import com.bumptech.glide.Glide;
 import com.example.tourismmedia.R;
 import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Location;
-import com.example.tourismmedia.ui.common.SystemBars;
 import com.example.tourismmedia.ui.location.LocationDetailFragment;
 import com.example.tourismmedia.ui.location.LocationFormatter;
 import com.example.tourismmedia.ui.location.adapter.CategoryAdapter;
@@ -65,7 +64,6 @@ public class HomeFragment extends Fragment {
         heroSubtitle = view.findViewById(R.id.home_hero_subtitle);
         status = view.findViewById(R.id.home_status);
 
-        SystemBars.padTop(view.findViewById(R.id.home_content));
         bindHeader(view);
         bindLists(view);
     }
@@ -84,8 +82,17 @@ public class HomeFragment extends Fragment {
                 .setText(username == null || username.isBlank() ? "Tourism Media" : username);
 
         TextView avatar = view.findViewById(R.id.home_avatar);
+        ImageView avatarImage = view.findViewById(R.id.home_avatar_image);
         avatar.setText(LocationFormatter.initials(username));
         avatar.setOnClickListener(v -> navigate(R.id.profileFragment, null));
+        avatarImage.setOnClickListener(v -> navigate(R.id.profileFragment, null));
+        repository.profile((profile, error, stale) -> {
+            if (!isAdded() || getView() == null || profile == null) return;
+            boolean hasAvatar = profile.avatar != null && !profile.avatar.isBlank();
+            avatar.setVisibility(hasAvatar ? View.GONE : View.VISIBLE);
+            avatarImage.setVisibility(hasAvatar ? View.VISIBLE : View.GONE);
+            if (hasAvatar) Glide.with(this).load(profile.avatar).centerCrop().error(R.drawable.bg_hero).into(avatarImage);
+        });
 
         view.findViewById(R.id.home_search).setOnClickListener(v -> openExplore(null));
         view.findViewById(R.id.home_explore).setOnClickListener(v -> openExplore(null));

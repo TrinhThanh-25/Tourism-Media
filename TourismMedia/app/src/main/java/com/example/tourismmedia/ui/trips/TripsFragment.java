@@ -1,17 +1,201 @@
 package com.example.tourismmedia.ui.trips;
 
-import android.os.Bundle;import android.text.*;import android.view.View;import android.widget.*;import androidx.annotation.NonNull;import androidx.appcompat.app.AlertDialog;import androidx.fragment.app.Fragment;import androidx.navigation.Navigation;import androidx.recyclerview.widget.*;import com.example.tourismmedia.R;import com.example.tourismmedia.data.AppRepository;import com.example.tourismmedia.data.model.AppModels.Trip;import com.example.tourismmedia.ui.common.SimpleCardAdapter;import java.util.*;
+import android.app.AlertDialog;
+import android.content.res.ColorStateList;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.tourismmedia.R;
+import com.example.tourismmedia.data.AppRepository;
+import com.example.tourismmedia.data.model.AppModels.Trip;
+import com.google.android.material.button.MaterialButton;
 
 public class TripsFragment extends Fragment {
- private static final String[] SORT_LABELS={"Highest rated","Newest","Price: low to high","Price: high to low","Shortest first","Name: A-Z"};private static final String[] SORT_VALUES={"rating-desc","id-desc","estimate_price-asc","estimate_price-desc","total_time-asc","title-asc"};
- private AppRepository repo;private SimpleCardAdapter adapter;private String query="",sort="rating-desc";private Double minRating=null;private Long maxPrice=null;private Button filterButton,sortButton;
- public TripsFragment(){super(R.layout.fragment_trips);}
- @Override public void onViewCreated(@NonNull View v,Bundle b){repo=AppRepository.get(requireContext());RecyclerView list=v.findViewById(R.id.trips_list);list.setLayoutManager(new LinearLayoutManager(requireContext()));adapter=new SimpleCardAdapter(i->details((Trip)i.value));list.setAdapter(adapter);filterButton=v.findViewById(R.id.trips_filter);sortButton=v.findViewById(R.id.trips_sort);filterButton.setOnClickListener(x->filter());sortButton.setOnClickListener(x->sort());v.findViewById(R.id.add_trip).setOnClickListener(x->create());((EditText)v.findViewById(R.id.trips_search)).addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int d){}public void onTextChanged(CharSequence s,int a,int b,int c){query=s.toString();load();}public void afterTextChanged(Editable e){}});load();}
- private void load(){repo.trips(query,minRating,maxPrice,sort,(data,e,s)->{List<SimpleCardAdapter.CardItem> cards=new ArrayList<>();for(Trip x:data)cards.add(new SimpleCardAdapter.CardItem("♧",x.title,safe(x.description),"★ "+x.rating+" · "+String.format("%,d VND",x.estimatedPrice)+" · "+x.totalTime+" minutes",x.imageUrl,x));adapter.submit(cards);if(e!=null)Toast.makeText(requireContext(),e,Toast.LENGTH_SHORT).show();});}
- private void filter(){LinearLayout form=new LinearLayout(requireContext());form.setOrientation(LinearLayout.VERTICAL);form.setPadding(44,8,44,0);Spinner rating=new Spinner(requireContext());String[] ratings={"Any rating","3 stars and up","4 stars and up","4.5 stars and up"};rating.setAdapter(new ArrayAdapter<>(requireContext(),android.R.layout.simple_spinner_dropdown_item,ratings));if(minRating!=null)rating.setSelection(minRating==3?1:minRating==4?2:3);form.addView(rating);EditText price=new EditText(requireContext());price.setHint("Maximum budget");price.setInputType(2);if(maxPrice!=null)price.setText(String.valueOf(maxPrice));form.addView(price);new AlertDialog.Builder(requireContext()).setTitle("Filter trips").setView(form).setNeutralButton("Clear",(d,w)->{minRating=null;maxPrice=null;filterButton.setText("⚙ Filters");load();}).setNegativeButton("Cancel",null).setPositiveButton("Apply",(d,w)->{double[] values={0,3,4,4.5};minRating=rating.getSelectedItemPosition()==0?null:values[rating.getSelectedItemPosition()];try{maxPrice=price.getText().toString().isBlank()?null:Long.valueOf(price.getText().toString());}catch(Exception ignored){maxPrice=null;}filterButton.setText("⚙ Filtered");load();}).show();}
- private void sort(){new AlertDialog.Builder(requireContext()).setTitle("Sort trips").setSingleChoiceItems(SORT_LABELS,indexOf(SORT_VALUES,sort),(d,i)->{sort=SORT_VALUES[i];sortButton.setText("⇅ "+SORT_LABELS[i]);d.dismiss();load();}).show();}
- private int indexOf(String[] a,String x){for(int i=0;i<a.length;i++)if(a[i].equals(x))return i;return 0;}
- private void details(Trip x){Bundle args=new Bundle();args.putString("type","trip");args.putLong("id",x.id);Navigation.findNavController(requireView()).navigate(R.id.detailFragment,args);}
- private void create(){LinearLayout form=new LinearLayout(requireContext());form.setOrientation(LinearLayout.VERTICAL);form.setPadding(42,10,42,0);EditText title=new EditText(requireContext());title.setHint("Trip name");EditText desc=new EditText(requireContext());desc.setHint("Short description");form.addView(title);form.addView(desc);new AlertDialog.Builder(requireContext()).setTitle("Create a new trip").setView(form).setNegativeButton("Cancel",null).setPositiveButton("Create",(d,w)->{if(title.getText().toString().trim().isEmpty()){Toast.makeText(requireContext(),"Please enter a name",Toast.LENGTH_SHORT).show();return;}repo.createTrip(title.getText().toString(),desc.getText().toString(),(trip,e,s)->{Toast.makeText(requireContext(),e==null?"Draft created":"Error: "+e,Toast.LENGTH_SHORT).show();if(e==null)load();});}).show();}
- private String safe(String s){return s==null?"":s;}
+    private static final String TAB_MINE = "mine";
+    private static final String TAB_SAVED = "saved";
+    private static final String TAB_COMMUNITY = "community";
+
+    private AppRepository repo;
+    private TripCardAdapter adapter;
+    private MaterialButton mineButton;
+    private MaterialButton savedButton;
+    private MaterialButton communityButton;
+    private MaterialButton filterButton;
+    private RecyclerView list;
+    private TextView emptyView;
+    private String activeTab = TAB_MINE;
+    private String sort = "rating-desc";
+    private Double minRating;
+    private Long maxPrice;
+    private Integer minTime;
+    private Integer maxTime;
+    private long pendingLocationId;
+    private String pendingLocationName;
+
+    public TripsFragment() {
+        super(R.layout.fragment_trips);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        repo = AppRepository.get(requireContext());
+        if (getArguments() != null) {
+            pendingLocationId = getArguments().getLong("location_id", 0);
+            pendingLocationName = getArguments().getString("location_name", "địa điểm này");
+        }
+        list = view.findViewById(R.id.trips_list);
+        emptyView = view.findViewById(R.id.trips_empty);
+        list.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new TripCardAdapter(this::details, this::toggleFavorite, this::togglePublished);
+        list.setAdapter(adapter);
+
+        mineButton = view.findViewById(R.id.trips_tab_mine);
+        savedButton = view.findViewById(R.id.trips_tab_saved);
+        communityButton = view.findViewById(R.id.trips_tab_community);
+        filterButton = view.findViewById(R.id.trips_search_toggle);
+
+        mineButton.setOnClickListener(v -> selectTab(TAB_MINE));
+        savedButton.setOnClickListener(v -> selectTab(TAB_SAVED));
+        communityButton.setOnClickListener(v -> selectTab(TAB_COMMUNITY));
+        filterButton.setOnClickListener(v -> workspace("filter", 0));
+        view.findViewById(R.id.add_trip).setOnClickListener(v -> workspace("create", 0));
+
+        Navigation.findNavController(view).getCurrentBackStackEntry().getSavedStateHandle()
+                .<Bundle>getLiveData("trip_filter")
+                .observe(getViewLifecycleOwner(), result -> {
+                    sort = result.getString("sort", "rating-desc");
+                    double rating = result.getDouble("rating", 0);
+                    minRating = rating == 0 ? null : rating;
+                    long budget = result.getLong("budget", 0);
+                    maxPrice = budget == 0 ? null : budget;
+                    int durationMode = result.getInt("duration", 0);
+                    minTime = durationMode == 3 ? 4 * 1440 : null;
+                    maxTime = durationMode == 1 ? 1440 : durationMode == 2 ? 3 * 1440 : null;
+                    if (durationMode == 2) minTime = 2 * 1440;
+                    filterButton.setText(minRating == null && maxPrice == null && minTime == null && maxTime == null
+                            && "rating-desc".equals(sort) ? "☷" : "●");
+                    selectTab(TAB_COMMUNITY);
+                });
+
+        updateTabs();
+        load();
+    }
+
+    private void selectTab(String tab) {
+        activeTab = tab;
+        updateTabs();
+        load();
+    }
+
+    private void updateTabs() {
+        styleTab(mineButton, TAB_MINE.equals(activeTab));
+        styleTab(savedButton, TAB_SAVED.equals(activeTab));
+        styleTab(communityButton, TAB_COMMUNITY.equals(activeTab));
+    }
+
+    private void styleTab(MaterialButton button, boolean selected) {
+        int background = ContextCompat.getColor(requireContext(), selected ? R.color.forest : R.color.white);
+        int foreground = ContextCompat.getColor(requireContext(), selected ? R.color.white : R.color.muted);
+        button.setBackgroundTintList(ColorStateList.valueOf(background));
+        button.setTextColor(foreground);
+    }
+
+    private void load() {
+        AppRepository.Result<java.util.List<Trip>> result = (data, error, stale) -> {
+            adapter.setOwnerMode(TAB_MINE.equals(activeTab));
+            adapter.submit(data);
+            boolean empty = data == null || data.isEmpty();
+            list.setVisibility(empty ? View.GONE : View.VISIBLE);
+            emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+            if (empty) {
+                emptyView.setText(error != null && error.contains("401")
+                        ? "🔐\n\nPhiên đăng nhập đã hết hạn\nĐăng nhập lại để xem chuyến đi cá nhân."
+                        : "🧭\n\nChưa có chuyến đi\nTạo một hành trình mới hoặc khám phá cộng đồng.");
+            }
+            if (error != null) Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+            if (TAB_MINE.equals(activeTab) && pendingLocationId > 0) offerLocationToTrip(data);
+        };
+        if (TAB_SAVED.equals(activeTab)) {
+            repo.favoriteTrips(result);
+        } else if (TAB_COMMUNITY.equals(activeTab)) {
+            repo.trips("", minRating, maxPrice, minTime, maxTime, sort, result);
+        } else {
+            repo.myTrips(result);
+        }
+    }
+
+    private void details(Trip trip) {
+        Bundle args = new Bundle();
+        args.putLong("id", trip.id);
+        Navigation.findNavController(requireView()).navigate(R.id.tripDetailFragment, args);
+    }
+
+    private void toggleFavorite(Trip trip, int position) {
+        boolean saved = trip.favorite == 1;
+        repo.favoriteTrip(trip.id, saved, (message, error, stale) -> {
+            if (!isAdded()) return;
+            if (error != null) {
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            trip.favorite = saved ? 0 : 1;
+            adapter.notifyItemChanged(position);
+            if (TAB_SAVED.equals(activeTab) && saved) load();
+        });
+    }
+
+    private void togglePublished(Trip trip, int position) {
+        boolean publish = trip.published != 1;
+        repo.setTripPublished(trip.id, publish, (updated, error, stale) -> {
+            if (!isAdded()) return;
+            if (error != null || updated == null) {
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            trip.published = updated.published;
+            trip.publishedAt = updated.publishedAt;
+            trip.authorUsername = updated.authorUsername;
+            adapter.notifyItemChanged(position);
+            Toast.makeText(requireContext(), publish
+                    ? "Đã đăng chuyến đi lên cộng đồng" : "Đã gỡ chuyến đi khỏi cộng đồng", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void offerLocationToTrip(java.util.List<Trip> trips) {
+        final long locationId = pendingLocationId;
+        pendingLocationId = 0;
+        if (trips == null || trips.isEmpty()) {
+            Toast.makeText(requireContext(), "Hãy tạo chuyến đi trước khi thêm " + pendingLocationName, Toast.LENGTH_LONG).show();
+            workspace("create", 0);
+            return;
+        }
+        String[] labels = new String[trips.size()];
+        for (int i = 0; i < trips.size(); i++) labels[i] = trips.get(i).title;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Thêm “" + pendingLocationName + "” vào chuyến đi")
+                .setItems(labels, (dialog, which) -> workspace("add-location", trips.get(which).id, locationId))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void workspace(String mode, long id) {
+        workspace(mode, id, 0);
+    }
+
+    private void workspace(String mode, long id, long locationId) {
+        Bundle args = new Bundle();
+        args.putString("mode", mode);
+        args.putLong("id", id);
+        if (locationId > 0) args.putLong("initial_location_id", locationId);
+        Navigation.findNavController(requireView()).navigate(R.id.tripWorkspaceFragment, args);
+    }
 }

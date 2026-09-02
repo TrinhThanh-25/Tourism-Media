@@ -1,48 +1,54 @@
-node_modules/
+# Dependencies and generated output
+/node_modules/
+/dist/
+/coverage/
+/.nyc_output/
+
+# Secrets and machine-local configuration
 .env
-*.sqlite
-*.db
-.vscode/
-dist/
-.venv/
+.env.*
+!.env.example
 
-# OS / editors
-.DS_Store
-.idea/
-.history/
-
-# Logs
+# Logs and process files
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.pid.lock
 
-# Local env variants (ignore local overrides)
-.env.local
-.env.*.local
-
-# Database files (common extensions)
+# Runtime data; travel_app.template.db is intentionally versioned as demo seed
+/data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
 *.sqlite3
-!travel_app.template.db
+*.sqlite3-journal
+!/travel_app.template.db
 
-# Build / coverage
-client/
-coverage/
-.nyc_output/
-
-# Temporary
-tmp/
+# Temporary/editor/OS files
+/tmp/
+/temp/
+*.tmp
 *.tgz
+.DS_Store
+Thumbs.db
+/.idea/
+/.vscode/
+*.swp
+*~
 
-# python cache
+# Optional Python tooling
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+venv/
 
-# GraphML data files
+# Large generated graph data
 *.graphml
-hồ_chí_minh_graph.graphml
 
-# Ignore Python virtual environment in python_chatbot
-python_chatbot/venv/
-data/
-.env
+# Internal documentation and archived database exports
+/ARCHITECTURE.md
+/scripts/db_exports/

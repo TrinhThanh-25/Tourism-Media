@@ -1,13 +1,42 @@
 package com.example.tourismmedia.ui.challenges;
 
-import android.os.Bundle;import android.view.View;import android.widget.*;import androidx.annotation.NonNull;import androidx.fragment.app.Fragment;import androidx.navigation.Navigation;import androidx.recyclerview.widget.*;import com.example.tourismmedia.R;import com.example.tourismmedia.data.AppRepository;import com.example.tourismmedia.data.model.AppModels.*;import com.example.tourismmedia.ui.common.SimpleCardAdapter;import java.util.*;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.example.tourismmedia.R;
+import com.example.tourismmedia.data.AppRepository;
+import com.example.tourismmedia.data.model.AppModels.Challenge;
 
 public class ChallengesFragment extends Fragment {
- private static final String[] PHOTOS={"https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/16/1158477/IMG_8725-2.jpg","https://homesaigon.info/f/634546cf1fbb14c2a8abc986dba3da6e-DIM2_30102022_113_cb8306.jpg","https://cdn.xanhsm.com/2025/01/8ab32a72-ban-cung-quan-1-5.jpg"};private AppRepository repo;private SimpleCardAdapter adapter;
- public ChallengesFragment(){super(R.layout.fragment_challenges);}
- @Override public void onViewCreated(@NonNull View v,Bundle b){repo=AppRepository.get(requireContext());RecyclerView list=v.findViewById(R.id.challenges_list);list.setLayoutManager(new LinearLayoutManager(requireContext()));adapter=new SimpleCardAdapter(i->join((Challenge)i.value));list.setAdapter(adapter);repo.challenges((data,e,s)->{List<SimpleCardAdapter.CardItem> cards=new ArrayList<>();int index=0;for(Challenge x:data){int target=x.target>0?x.target:x.requiredCheckins;cards.add(new SimpleCardAdapter.CardItem("◇",x.name,x.description,"Progress "+x.progress+"/"+target+"   ·   +"+x.rewardPoint+" points",PHOTOS[index++%PHOTOS.length],x));}adapter.submit(cards);});v.findViewById(R.id.open_rewards).setOnClickListener(x->rewards(v));}
- private void join(Challenge x){openDetail("challenge",x.id);}
- private void rewards(View v){repo.rewards((catalog,e,s)->{if(catalog==null){toast(e==null?"Could not load rewards":e);return;}((TextView)v.findViewById(R.id.challenge_points)).setText(String.format("%,d",catalog.points));String[] names=new String[catalog.rewards.size()];for(int i=0;i<names.length;i++){Reward r=catalog.rewards.get(i);names[i]=r.name+" · "+r.cost+" points";}new androidx.appcompat.app.AlertDialog.Builder(requireContext()).setTitle("Rewards · "+catalog.points+" points").setItems(names,(d,index)->openDetail("reward",catalog.rewards.get(index).id)).setNegativeButton("Close",null).show();});}
- private void openDetail(String type,long id){Bundle args=new Bundle();args.putString("type",type);args.putLong("id",id);Navigation.findNavController(requireView()).navigate(R.id.detailFragment,args);}
- private void toast(String s){Toast.makeText(requireContext(),s,Toast.LENGTH_SHORT).show();}
+    private AppRepository repo;
+    private ChallengeAdapter adapter;
+    public ChallengesFragment() { super(R.layout.fragment_challenges); }
+
+    @Override public void onViewCreated(@NonNull View view, Bundle state) {
+        repo = AppRepository.get(requireContext());
+        RecyclerView list = view.findViewById(R.id.challenges_list);
+        list.setLayoutManager(new LinearLayoutManager(requireContext()));
+        adapter = new ChallengeAdapter(this::detail);
+        list.setAdapter(adapter);
+        repo.myChallenges((data, error, stale) -> {
+            if (error == null) adapter.submit(data);
+            else repo.challenges((publicData, publicError, sample) -> adapter.submit(publicData));
+        });
+        repo.points((balance, error, stale) -> {
+            if (balance != null) ((TextView) view.findViewById(R.id.challenge_points)).setText(String.format("%,d", balance.points));
+        });
+        view.findViewById(R.id.open_rewards).setOnClickListener(v -> open("rewards", 0));
+        view.findViewById(R.id.challenge_trophy).setOnClickListener(v -> open("rewards", 0));
+    }
+
+    private void detail(Challenge challenge) { open("challenge-detail", challenge.id); }
+    private void open(String mode, long id) {
+        Bundle args = new Bundle(); args.putString("mode", mode); args.putLong("id", id);
+        Navigation.findNavController(requireView()).navigate(R.id.member3WorkspaceFragment, args);
+    }
 }

@@ -1,14 +1,14 @@
 <resources>
     <string name="app_name">Tourism Media</string>
-    <string name="nav_home">Home</string>
-    <string name="nav_explore">Explore</string>
-    <string name="nav_trips">Trips</string>
-    <string name="nav_challenges">Challenges</string>
-    <string name="nav_profile">Profile</string>
-    <string name="home_description">Your starting point for place suggestions, featured trips and recent activity.</string>
-    <string name="explore_description">Search places, browse the map, photos and reviews, and save your favourites.</string>
-    <string name="trips_description">Browse public itineraries, manage your own trips and the ones you saved.</string>
-    <string name="challenges_description">Track challenges, check-in progress, reward points and what you can redeem.</string>
-    <string name="profile_description">Sign in, your profile, check-in history, points, vouchers and account settings.</string>
-    <string name="skeleton_notice">Placeholder area - content and features are still being defined.</string>
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_explore">Khám phá</string>
+    <string name="nav_trips">Chuyến đi</string>
+    <string name="nav_challenges">Thử thách</string>
+    <string name="nav_profile">Tài khoản</string>
+    <string name="home_description">Điểm bắt đầu cho các gợi ý địa điểm, chuyến đi nổi bật và hoạt động gần đây.</string>
+    <string name="explore_description">Tìm địa điểm, xem ảnh và đánh giá, rồi lưu những nơi bạn yêu thích.</string>
+    <string name="trips_description">Khám phá hành trình cộng đồng, quản lý chuyến đi và nội dung đã lưu.</string>
+    <string name="challenges_description">Theo dõi thử thách, tiến độ check-in, điểm và phần thưởng.</string>
+    <string name="profile_description">Quản lý hồ sơ, lịch sử check-in, điểm, voucher và cài đặt tài khoản.</string>
+    <string name="skeleton_notice">Khu vực tạm — nội dung và chức năng đang được hoàn thiện.</string>
 </resources>

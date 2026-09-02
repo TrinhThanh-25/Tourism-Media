@@ -24,7 +24,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tourismmedia.R;
 import com.example.tourismmedia.data.AppRepository;
 import com.example.tourismmedia.data.model.AppModels.Location;
-import com.example.tourismmedia.ui.common.SystemBars;
 import com.example.tourismmedia.ui.location.LocationDetailFragment;
 import com.example.tourismmedia.ui.location.adapter.CategoryAdapter;
 import com.example.tourismmedia.ui.location.adapter.LocationAdapter;
@@ -81,8 +80,6 @@ public class ExploreFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         repository = AppRepository.get(requireContext());
-        SystemBars.padTop(view.findViewById(R.id.explore_root));
-
         status = view.findViewById(R.id.explore_status);
         empty = view.findViewById(R.id.explore_empty);
         progress = view.findViewById(R.id.explore_progress);

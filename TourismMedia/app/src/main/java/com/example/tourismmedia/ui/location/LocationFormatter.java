@@ -33,7 +33,28 @@ public final class LocationFormatter {
         if (blankToNull(category) == null) {
             return blankToNull(city) == null ? "" : city;
         }
-        return blankToNull(city) == null ? category : category + " · " + city;
+        String label = categoryLabel(category);
+        return blankToNull(city) == null ? label : label + " · " + city;
+    }
+
+    /** Localizes common API category/type keys while leaving unknown values intact. */
+    public static String categoryLabel(String value) {
+        if (blankToNull(value) == null) {
+            return "";
+        }
+        switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "attraction": return "Điểm tham quan";
+            case "food": return "Ẩm thực";
+            case "cafe":
+            case "coffee shop": return "Cà phê";
+            case "entertainment": return "Giải trí";
+            case "activity": return "Hoạt động";
+            case "shopping": return "Mua sắm";
+            case "nature": return "Thiên nhiên";
+            case "history": return "Lịch sử";
+            case "culture": return "Văn hóa";
+            default: return value;
+        }
     }
 
     public static String reviewCount(Context context, int count) {

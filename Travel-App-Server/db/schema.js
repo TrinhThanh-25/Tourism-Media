@@ -14,7 +14,8 @@ export const TABLES = [
     id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT, rating REAL,
     key_highlight TEXT, estimate_price INTEGER, total_time INTEGER, url_image TEXT,
     review_count INTEGER DEFAULT 0, user_id INTEGER, created_at TEXT,
-    is_post INTEGER DEFAULT 0, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    is_post INTEGER DEFAULT 0, published_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
   )`,
   `CREATE TABLE IF NOT EXISTS trip_locations (
     trip_id INTEGER NOT NULL, location_id INTEGER NOT NULL, order_index INTEGER,

@@ -1,21 +1,67 @@
 package com.example.tourismmedia.ui.common;
 
-import android.view.*;
-import android.widget.TextView;import android.widget.ImageView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.tourismmedia.R;
+
 import com.bumptech.glide.Glide;
-import java.util.*;
+import com.example.tourismmedia.R;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SimpleCardAdapter extends RecyclerView.Adapter<SimpleCardAdapter.Holder> {
-    public static class CardItem { public final String icon,title,subtitle,meta,imageUrl; public final Object value; public CardItem(String i,String t,String s,String m,Object v){this(i,t,s,m,null,v);}public CardItem(String i,String t,String s,String m,String image,Object v){icon=i;title=t;subtitle=s;meta=m;imageUrl=image;value=v;} }
+    public static class CardItem {
+        public final String icon, title, subtitle, meta, imageUrl;
+        public final Object value;
+        public final boolean favoriteVisible;
+        public final boolean favorite;
+
+        public CardItem(String icon, String title, String subtitle, String meta, Object value) {
+            this(icon, title, subtitle, meta, null, value, false, false);
+        }
+        public CardItem(String icon, String title, String subtitle, String meta, String image, Object value) {
+            this(icon, title, subtitle, meta, image, value, false, false);
+        }
+        public CardItem(String icon, String title, String subtitle, String meta, String image, Object value,
+                        boolean favoriteVisible, boolean favorite) {
+            this.icon = icon; this.title = title; this.subtitle = subtitle; this.meta = meta;
+            this.imageUrl = image; this.value = value; this.favoriteVisible = favoriteVisible; this.favorite = favorite;
+        }
+    }
+
     public interface Listener { void onClick(CardItem item); }
-    private final List<CardItem> items=new ArrayList<>(); private final Listener listener;
-    public SimpleCardAdapter(Listener listener){this.listener=listener;}
-    public void submit(List<CardItem> next){items.clear();items.addAll(next);notifyDataSetChanged();}
-    @NonNull @Override public Holder onCreateViewHolder(@NonNull ViewGroup parent,int type){return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_travel_card,parent,false));}
-    @Override public void onBindViewHolder(@NonNull Holder h,int p){CardItem x=items.get(p);h.icon.setText(x.icon);h.title.setText(x.title);h.subtitle.setText(x.subtitle);h.meta.setText(x.meta);if(x.imageUrl!=null&&!x.imageUrl.isBlank()){h.image.setVisibility(View.VISIBLE);h.icon.setVisibility(View.GONE);Glide.with(h.image.getContext()).load(x.imageUrl).centerCrop().placeholder(R.drawable.bg_hero).error(R.drawable.bg_hero).into(h.image);}else{Glide.with(h.image.getContext()).clear(h.image);h.image.setVisibility(View.GONE);h.icon.setVisibility(View.VISIBLE);}h.itemView.setOnClickListener(v->listener.onClick(x));}
-    @Override public int getItemCount(){return items.size();}
-    static class Holder extends RecyclerView.ViewHolder{ImageView image;TextView icon,title,subtitle,meta;Holder(View v){super(v);image=v.findViewById(R.id.card_image);icon=v.findViewById(R.id.card_icon);title=v.findViewById(R.id.card_title);subtitle=v.findViewById(R.id.card_subtitle);meta=v.findViewById(R.id.card_meta);}}
+    private final List<CardItem> items = new ArrayList<>();
+    private final Listener listener;
+    public SimpleCardAdapter(Listener listener) { this.listener = listener; }
+    public void submit(List<CardItem> next) { items.clear(); items.addAll(next); notifyDataSetChanged(); }
+
+    @NonNull @Override public Holder onCreateViewHolder(@NonNull ViewGroup parent, int type) {
+        return new Holder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_travel_card, parent, false));
+    }
+
+    @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
+        CardItem item = items.get(position);
+        holder.icon.setText(item.icon); holder.title.setText(item.title); holder.subtitle.setText(item.subtitle); holder.meta.setText(item.meta);
+        holder.favorite.setVisibility(item.favoriteVisible ? View.VISIBLE : View.GONE);
+        holder.favorite.setText(item.favorite ? "♥" : "♡");
+        if (item.imageUrl != null && !item.imageUrl.isBlank()) {
+            holder.image.setVisibility(View.VISIBLE); holder.icon.setVisibility(View.GONE);
+            Glide.with(holder.image.getContext()).load(item.imageUrl).centerCrop().placeholder(R.drawable.bg_hero).error(R.drawable.bg_hero).into(holder.image);
+        } else {
+            Glide.with(holder.image.getContext()).clear(holder.image); holder.image.setVisibility(View.GONE); holder.icon.setVisibility(View.VISIBLE);
+        }
+        holder.itemView.setOnClickListener(v -> listener.onClick(item));
+    }
+
+    @Override public int getItemCount() { return items.size(); }
+    static class Holder extends RecyclerView.ViewHolder {
+        final ImageView image; final TextView icon, title, subtitle, meta, favorite;
+        Holder(View view) { super(view); image=view.findViewById(R.id.card_image); icon=view.findViewById(R.id.card_icon); title=view.findViewById(R.id.card_title); subtitle=view.findViewById(R.id.card_subtitle); meta=view.findViewById(R.id.card_meta); favorite=view.findViewById(R.id.card_favorite); }
+    }
 }
