@@ -12,6 +12,7 @@ google-services.json
 
 # Gradle and Android generated output
 /.gradle/
+gradle/gradle-daemon-jvm.properties
 /.kotlin/
 /build/
 **/build/

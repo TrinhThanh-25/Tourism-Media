@@ -32,7 +32,6 @@ import retrofit2.http.PATCH;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 import retrofit2.http.QueryMap;
 
 /**
@@ -65,13 +64,6 @@ public interface ApiService {
 
     @GET("api/locations/{id}")
     Call<Location> location(@Header("Authorization") String auth, @Path("id") long id);
-
-    @GET("api/locations/nearby")
-    Call<List<Location>> nearbyLocations(@Header("Authorization") String auth,
-                                         @Query("lat") double lat,
-                                         @Query("lon") double lon,
-                                         @Query("radius") double radius,
-                                         @Query("limit") int limit);
 
     @GET("api/locations/{id}/images")
     Call<List<LocationImage>> locationImages(@Path("id") long id);

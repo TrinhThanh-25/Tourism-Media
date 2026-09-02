@@ -25,7 +25,6 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", quotedBuildConfig(configuredApiBaseUrl))
     }
 
@@ -74,10 +73,5 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.gson)
     implementation(libs.recyclerview)
-    implementation(libs.lifecycle.viewmodel)
-    implementation(libs.lifecycle.livedata)
     implementation(libs.glide)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.espresso.core)
-    androidTestImplementation(libs.ext.junit)
 }

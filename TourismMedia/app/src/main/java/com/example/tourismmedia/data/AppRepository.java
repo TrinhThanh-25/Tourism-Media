@@ -55,10 +55,9 @@ public class AppRepository {
     /**
      * @param data   payload, or null when a single-object request failed
      * @param error  human readable message, or null on success
-     * @param sample retained for callback compatibility; always false because sample data is disabled
      */
     public interface Result<T> {
-        void onResult(T data, String error, boolean sample);
+        void onResult(T data, String error);
     }
 
     private static final String OFFLINE = "Không kết nối được máy chủ";
@@ -136,12 +135,12 @@ public class AppRepository {
             @Override public void onResponse(@NonNull Call<Message> call, @NonNull Response<Message> response) {
                 session.clear();
                 clearCache();
-                result.onResult(response.body(), response.isSuccessful() ? null : errorOf(response, "Đăng xuất thất bại"), false);
+                result.onResult(response.body(), response.isSuccessful() ? null : errorOf(response, "Đăng xuất thất bại"));
             }
             @Override public void onFailure(@NonNull Call<Message> call, @NonNull Throwable throwable) {
                 session.clear();
                 clearCache();
-                result.onResult(null, null, false);
+                result.onResult(null, null);
             }
         });
     }
@@ -152,17 +151,17 @@ public class AppRepository {
             public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 AuthResponse body = response.body();
                 if (!response.isSuccessful() || body == null || body.token == null) {
-                    result.onResult(null, errorOf(response, "Đăng nhập thất bại"), false);
+                    result.onResult(null, errorOf(response, "Đăng nhập thất bại"));
                     return;
                 }
                 session.save(body, email);
                 clearCache();
-                result.onResult(body, null, false);
+                result.onResult(body, null);
             }
 
             @Override
             public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable throwable) {
-                result.onResult(null, "Không kết nối được máy chủ: " + throwable.getMessage(), false);
+                result.onResult(null, "Không kết nối được máy chủ: " + throwable.getMessage());
             }
         });
     }
@@ -191,12 +190,6 @@ public class AppRepository {
 
     public void location(long id, Result<Location> result) {
         cachedSingle(key("location", id), api.location(session.authorization(), id), result, "Không thể tải địa điểm này");
-    }
-
-    public void nearbyLocations(double latitude, double longitude, double radiusKm, int limit,
-                                Result<List<Location>> result) {
-        cachedList(key("nearby", latitude, longitude, radiusKm, limit),
-                api.nearbyLocations(session.authorization(), latitude, longitude, radiusKm, limit), result);
     }
 
     public void locationImages(long id, Result<List<LocationImage>> result) {
@@ -236,7 +229,7 @@ public class AppRepository {
     public void uploadImage(Uri uri, Result<String> result) {
         String mime = context.getContentResolver().getType(uri);
         if (!("image/jpeg".equals(mime) || "image/png".equals(mime) || "image/webp".equals(mime))) {
-            result.onResult(null, "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP", false);
+            result.onResult(null, "Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP");
             return;
         }
         MediaType mediaType = MediaType.get(mime);
@@ -253,11 +246,11 @@ public class AppRepository {
             @Override public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
                 UploadResult uploaded = response.body();
                 if (!response.isSuccessful() || uploaded == null || uploaded.url == null) {
-                    result.onResult(null, errorOf(response, "Không thể tải ảnh lên"), false);
-                } else result.onResult(uploaded.url, null, false);
+                    result.onResult(null, errorOf(response, "Không thể tải ảnh lên"));
+                } else result.onResult(uploaded.url, null);
             }
             @Override public void onFailure(@NonNull Call<UploadResult> call, @NonNull Throwable throwable) {
-                result.onResult(null, OFFLINE + ": " + throwable.getMessage(), false);
+                result.onResult(null, OFFLINE + ": " + throwable.getMessage());
             }
         });
     }
@@ -293,28 +286,6 @@ public class AppRepository {
         cachedSingle(key("profile"), api.profile(session.authorization()), result, "Không thể tải hồ sơ");
     }
 
-    public void updateProfile(String username, Result<String> result) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("username", username);
-        api.updateProfile(session.authorization(), body).enqueue(new Callback<>() {
-            @Override
-            public void onResponse(@NonNull Call<ProfileUpdate> call, @NonNull Response<ProfileUpdate> response) {
-                ProfileUpdate body = response.body();
-                if (!response.isSuccessful() || body == null) {
-                    result.onResult(null, errorOf(response, "Không thể cập nhật hồ sơ"), false);
-                } else {
-                    clearCache();
-                    result.onResult(body.message == null ? "Đã cập nhật hồ sơ" : body.message, null, false);
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<ProfileUpdate> call, @NonNull Throwable throwable) {
-                result.onResult(null, "Không kết nối được máy chủ", false);
-            }
-        });
-    }
-
     public void updateProfile(Map<String, String> values, Result<String> result) {
         Map<String, Object> body = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : values.entrySet()) {
@@ -326,12 +297,12 @@ public class AppRepository {
             @Override public void onResponse(@NonNull Call<ProfileUpdate> call, @NonNull Response<ProfileUpdate> response) {
                 if (response.isSuccessful()) {
                     clearCache();
-                    result.onResult("Cập nhật hồ sơ thành công", null, false);
+                    result.onResult("Cập nhật hồ sơ thành công", null);
                 }
-                else result.onResult(null, errorOf(response, "Không thể cập nhật hồ sơ"), false);
+                else result.onResult(null, errorOf(response, "Không thể cập nhật hồ sơ"));
             }
             @Override public void onFailure(@NonNull Call<ProfileUpdate> call, @NonNull Throwable throwable) {
-                result.onResult(null, "Không kết nối được server", false);
+                result.onResult(null, "Không kết nối được server");
             }
         });
     }
@@ -361,10 +332,6 @@ public class AppRepository {
 
     // ----------------------------------------------------------------- trips
 
-    public void trips(Result<List<Trip>> result) {
-        trips("", null, null, null, null, "rating-desc", result);
-    }
-
     public void trips(String query, Double minRating, Long maxPrice, String sort, Result<List<Trip>> result) {
         trips(query, minRating, maxPrice, null, null, sort, result);
     }
@@ -389,30 +356,22 @@ public class AppRepository {
             public void onResponse(@NonNull Call<TripPage> call, @NonNull Response<TripPage> response) {
                 TripPage body = response.body();
                 if (!response.isSuccessful() || body == null || body.data == null) {
-                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải chuyến đi"), false);
+                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải chuyến đi"));
                 } else {
                     memoryCache.put(cacheKey, new CacheEntry(new ArrayList<>(body.data)));
-                    result.onResult(body.data, null, false);
+                    result.onResult(body.data, null);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<TripPage> call, @NonNull Throwable throwable) {
-                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
+                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage());
             }
         });
     }
 
     public void trip(long id, Result<Trip> result) {
         cachedSingle(key("trip", id), api.trip(session.authorization(), id), result, "Không thể tải chuyến đi này");
-    }
-
-    public void createTrip(String title, String description, Result<Trip> result) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("title", title);
-        body.put("description", description);
-        body.put("locations", new ArrayList<>());
-        single(api.createTrip(session.authorization(), body), invalidating(result), "Không thể tạo chuyến đi");
     }
 
     public void saveTrip(Long id, Map<String, Object> body, Result<Trip> result) {
@@ -440,10 +399,6 @@ public class AppRepository {
     public void favoriteTrip(long id, boolean alreadyFavorite, Result<Message> result) {
         String auth = session.authorization();
         message(alreadyFavorite ? api.removeFavoriteTrip(auth, id) : api.addFavoriteTrip(auth, id), invalidating(result));
-    }
-
-    public void favoriteTrip(long id, Result<Message> result) {
-        favoriteTrip(id, false, result);
     }
 
     public void tripReviews(long tripId, Result<List<TripReview>> result) {
@@ -519,7 +474,7 @@ public class AppRepository {
             memoryCache.remove(cacheKey, cached);
             return false;
         }
-        result.onResult((T) cached.value, null, false);
+        result.onResult((T) cached.value, null);
         return true;
     }
 
@@ -537,9 +492,9 @@ public class AppRepository {
     }
 
     private <T> Result<T> invalidating(Result<T> result) {
-        return (data, error, sample) -> {
+        return (data, error) -> {
             if (error == null) clearCache();
-            result.onResult(data, error, sample);
+            result.onResult(data, error);
         };
     }
 
@@ -555,11 +510,11 @@ public class AppRepository {
             public void onResponse(@NonNull Call<List<T>> call, @NonNull Response<List<T>> response) {
                 List<T> body = response.body();
                 if (!response.isSuccessful() || body == null) {
-                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải dữ liệu"), false);
+                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải dữ liệu"));
                 } else {
                     List<T> snapshot = new ArrayList<>(body);
                     memoryCache.put(cacheKey, new CacheEntry(snapshot));
-                    result.onResult(snapshot, null, false);
+                    result.onResult(snapshot, null);
                 }
             }
 
@@ -571,7 +526,7 @@ public class AppRepository {
                             NETWORK_RETRY_DELAYS_MS[attempt]);
                     return;
                 }
-                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
+                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage());
             }
         });
     }
@@ -588,10 +543,10 @@ public class AppRepository {
             public void onResponse(@NonNull Call<T> call, @NonNull Response<T> response) {
                 T body = response.body();
                 if (!response.isSuccessful() || body == null) {
-                    result.onResult(null, errorOf(response, failureMessage), false);
+                    result.onResult(null, errorOf(response, failureMessage));
                 } else {
                     memoryCache.put(cacheKey, new CacheEntry(body));
-                    result.onResult(body, null, false);
+                    result.onResult(body, null);
                 }
             }
 
@@ -603,27 +558,7 @@ public class AppRepository {
                             NETWORK_RETRY_DELAYS_MS[attempt]);
                     return;
                 }
-                result.onResult(null, failureMessage + " (máy chủ không phản hồi)", false);
-            }
-        });
-    }
-
-    /** List requests return only server data and never hand a null list to callers. */
-    private <T> void list(Call<List<T>> call, Result<List<T>> result) {
-        call.enqueue(new Callback<>() {
-            @Override
-            public void onResponse(@NonNull Call<List<T>> call, @NonNull Response<List<T>> response) {
-                List<T> body = response.body();
-                if (!response.isSuccessful() || body == null) {
-                    result.onResult(new ArrayList<>(), errorOf(response, "Không thể tải dữ liệu"), false);
-                } else {
-                    result.onResult(body, null, false);
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<List<T>> call, @NonNull Throwable throwable) {
-                result.onResult(new ArrayList<>(), OFFLINE + ": " + throwable.getMessage(), false);
+                result.onResult(null, failureMessage + " (máy chủ không phản hồi)");
             }
         });
     }
@@ -634,15 +569,15 @@ public class AppRepository {
             public void onResponse(@NonNull Call<T> call, @NonNull Response<T> response) {
                 T body = response.body();
                 if (!response.isSuccessful() || body == null) {
-                    result.onResult(null, errorOf(response, failureMessage), false);
+                    result.onResult(null, errorOf(response, failureMessage));
                 } else {
-                    result.onResult(body, null, false);
+                    result.onResult(body, null);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<T> call, @NonNull Throwable throwable) {
-                result.onResult(null, failureMessage + " (máy chủ không phản hồi)", false);
+                result.onResult(null, failureMessage + " (máy chủ không phản hồi)");
             }
         });
     }
