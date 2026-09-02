@@ -387,7 +387,7 @@ public class AppRepository {
     }
 
     public void tripReviews(long tripId, Result<List<TripReview>> result) {
-        list(api.tripReviews(tripId), result, ArrayList::new);
+        list(api.tripReviews(session.authorization(), tripId), result, ArrayList::new);
     }
 
     public void createTripReview(long tripId, int rating, String comment, Result<TripReview> result) {

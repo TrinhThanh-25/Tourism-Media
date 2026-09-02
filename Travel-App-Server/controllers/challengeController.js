@@ -12,7 +12,34 @@ function targetFor(challenge) {
   return Number(criteria.count ?? criteria.points ?? criteria.meters ?? challenge.required_checkins ?? 0);
 }
 
-async function calculateProgress(challenge, userId, queries = { get }) {
+// SQLite stores timestamps both as "2026-01-01T00:00:00.000Z" and "2026-01-01 00:00:00";
+// normalising both sides to the same UTC ISO string keeps string comparison valid.
+const SQL_UTC = "strftime('%Y-%m-%dT%H:%M:%fZ',%s)";
+
+function toUtcIso(value) {
+  if (!value) return null;
+  const text = String(value).trim().replace(" ", "T");
+  const time = Date.parse(/(Z|[+-]\d{2}:?\d{2})$/.test(text) ? text : `${text}Z`);
+  return Number.isNaN(time) ? null : new Date(time).toISOString();
+}
+
+// Progress only counts activity inside the challenge window, and never before the user joined.
+export function progressWindow(challenge, membership) {
+  const starts = [toUtcIso(challenge.start_date),toUtcIso(membership?.joined_at)].filter(Boolean);
+  return {
+    from:starts.length ? starts.reduce((a,b) => a > b ? a : b) : null,
+    to:toUtcIso(challenge.end_date)
+  };
+}
+
+function windowFilter(column, window) {
+  const sql = [], params = [];
+  if (window?.from) { sql.push(` AND ${SQL_UTC.replace("%s",column)} >= ?`); params.push(window.from); }
+  if (window?.to) { sql.push(` AND ${SQL_UTC.replace("%s",column)} <= ?`); params.push(window.to); }
+  return { sql:sql.join(""), params };
+}
+
+async function calculateProgress(challenge, userId, queries = { get }, membership = null) {
   const criteria = parseCriteria(challenge.criteria);
   const target = criteria.target;
   const locationIds = Array.isArray(criteria.location_ids)
@@ -21,44 +48,59 @@ async function calculateProgress(challenge, userId, queries = { get }) {
   const locationFilter = locationIds.length
     ? ` AND location_id IN (${locationIds.map(() => "?").join(",")})`
     : "";
+  const window = progressWindow(challenge,membership);
+  const checkinWindow = windowFilter("checked_in_at",window);
+  const reviewWindow = windowFilter("created_at",window);
+  const activityWindow = windowFilter("created_at",window);
 
   if (target === "level_points" || challenge.challenge_type === "level") {
     return (await queries.get("SELECT COALESCE(total_point,0) AS value FROM users WHERE id=?", [userId]))?.value || 0;
   }
   if (target === "distinct_locations" || challenge.challenge_type === "collection" && target !== "distinct_categories") {
-    return (await queries.get("SELECT COUNT(DISTINCT location_id) AS value FROM user_location WHERE user_id=?", [userId]))?.value || 0;
+    return (await queries.get(
+      `SELECT COUNT(DISTINCT location_id) AS value FROM user_location WHERE user_id=?${checkinWindow.sql}`,
+      [userId,...checkinWindow.params]
+    ))?.value || 0;
   }
   if (target === "distinct_categories") {
+    const categoryWindow = windowFilter("checkin.checked_in_at",window);
     return (await queries.get(
       `SELECT COUNT(DISTINCT location.category) AS value
        FROM user_location checkin JOIN locations location ON location.id=checkin.location_id
-       WHERE checkin.user_id=?`, [userId]
+       WHERE checkin.user_id=?${categoryWindow.sql}`, [userId,...categoryWindow.params]
     ))?.value || 0;
   }
   if (target === "location_reviews" || target === "reviews_written") {
     return (await queries.get(
-      `SELECT COUNT(*) AS value FROM location_reviews WHERE user_id=?${locationFilter}`,
-      [userId,...locationIds]
+      `SELECT COUNT(*) AS value FROM location_reviews WHERE user_id=?${locationFilter}${reviewWindow.sql}`,
+      [userId,...locationIds,...reviewWindow.params]
     ))?.value || 0;
   }
   if (target === "checkins" || challenge.challenge_type === "checkin") {
+    // "Visit N places" counts distinct locations; "check in N times at these places"
+    // counts the (already deduplicated) daily check-ins.
+    const distinct = criteria.count_distinct !== undefined
+      ? Boolean(criteria.count_distinct)
+      : !locationIds.length || Number(criteria.count ?? 0) <= locationIds.length;
     return (await queries.get(
-      `SELECT COUNT(*) AS value FROM user_location WHERE user_id=?${locationFilter}`,
-      [userId,...locationIds]
+      `SELECT COUNT(${distinct ? "DISTINCT location_id" : "*"}) AS value
+       FROM user_location WHERE user_id=?${locationFilter}${checkinWindow.sql}`,
+      [userId,...locationIds,...checkinWindow.params]
     ))?.value || 0;
   }
   if (target === "distance_meters") {
     return (await queries.get(
       `SELECT COALESCE(SUM(CAST(json_extract(meta_json,'$.meters') AS INTEGER)),0) AS value
-       FROM user_activity WHERE user_id=? AND type='distance_session'`, [userId]
+       FROM user_activity WHERE user_id=? AND type='distance_session'${activityWindow.sql}`,
+      [userId,...activityWindow.params]
     ))?.value || 0;
   }
   if (target === "collect_item") {
     return (await queries.get(
       `SELECT COUNT(DISTINCT json_extract(meta_json,'$.item_key')) AS value
        FROM user_activity WHERE user_id=? AND type='collect_item'
-       AND json_extract(meta_json,'$.item_key') LIKE ?`,
-      [userId,`${criteria.item_prefix || ""}%`]
+       AND json_extract(meta_json,'$.item_key') LIKE ?${activityWindow.sql}`,
+      [userId,`${criteria.item_prefix || ""}%`,...activityWindow.params]
     ))?.value || 0;
   }
 
@@ -69,8 +111,8 @@ async function calculateProgress(challenge, userId, queries = { get }) {
   };
   if (activityTypes[target]) {
     return (await queries.get(
-      "SELECT COUNT(*) AS value FROM user_activity WHERE user_id=? AND type=?",
-      [userId,activityTypes[target]]
+      `SELECT COUNT(*) AS value FROM user_activity WHERE user_id=? AND type=?${activityWindow.sql}`,
+      [userId,activityTypes[target],...activityWindow.params]
     ))?.value || 0;
   }
   return (await queries.get(
@@ -80,12 +122,12 @@ async function calculateProgress(challenge, userId, queries = { get }) {
 }
 
 export async function buildChallengeProgress(challenge, userId, queries = { get }) {
-  const progress = await calculateProgress(challenge,userId,queries);
-  const target = targetFor(challenge);
   const membership = await queries.get(
     "SELECT status,joined_at,completed_at FROM user_challenge WHERE user_id=? AND challenge_id=?",
     [userId,challenge.id]
   );
+  const progress = await calculateProgress(challenge,userId,queries,membership);
+  const target = targetFor(challenge);
   const now = Date.now();
   const active = (!challenge.start_date || new Date(challenge.start_date).getTime() <= now)
     && (!challenge.end_date || new Date(challenge.end_date).getTime() >= now);
@@ -194,7 +236,8 @@ export async function joinChallenge(req, res) {
     if (challenge.end_date && new Date(challenge.end_date).getTime() < now)
       return res.status(409).json({error:"Challenge has ended"});
     const result = await run(
-      "INSERT OR IGNORE INTO user_challenge (user_id,challenge_id,status) VALUES (?,?,'in_progress')",
+      `INSERT OR IGNORE INTO user_challenge (user_id,challenge_id,status,joined_at)
+       VALUES (?,?,'in_progress',strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
       [req.user.id,challenge.id]
     );
     if (!result.changes) return res.status(409).json({error:"Challenge already joined"});
@@ -216,14 +259,14 @@ export async function completeChallenge(req, res) {
       const challenge = await queries.get("SELECT * FROM challenges WHERE id=?", [req.params.id]);
       if (!challenge) throw Object.assign(new Error("Challenge not found"), {status:404});
       const membership = await queries.get(
-        "SELECT status FROM user_challenge WHERE user_id=? AND challenge_id=?",
+        "SELECT status,joined_at FROM user_challenge WHERE user_id=? AND challenge_id=?",
         [req.user.id,challenge.id]
       );
       if (!membership) throw Object.assign(new Error("Join the challenge first"), {status:409});
       if (membership.status === "claimed") throw Object.assign(new Error("Challenge reward already claimed"), {status:409});
       if (challenge.end_date && new Date(challenge.end_date).getTime() < Date.now())
         throw Object.assign(new Error("Challenge has ended"), {status:409});
-      const progress = await calculateProgress(challenge,req.user.id,queries);
+      const progress = await calculateProgress(challenge,req.user.id,queries,membership);
       const target = targetFor(challenge);
       if (!target || progress < target) throw Object.assign(new Error("Not enough progress"), {status:409});
       const points = Number(challenge.reward_point) || 0;

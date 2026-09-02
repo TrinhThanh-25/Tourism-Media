@@ -47,9 +47,19 @@ export const checkInLocation = async (req, res) => {
   try {
     const location = await get("SELECT id FROM locations WHERE id=?", [req.body.location_id]);
     if (!location) return res.status(404).json({error:"Location not found"});
+    // One check-in per user/location/day so repeated taps cannot inflate challenge progress.
+    const today = await get(
+      `SELECT id,location_id,checked_in_at FROM user_location
+       WHERE user_id=? AND location_id=? AND date(checked_in_at)=date('now')
+       ORDER BY checked_in_at DESC LIMIT 1`,
+      [req.user.id,location.id]
+    );
+    if (today) {
+      return res.json({ message:"You already checked in here today",checkin:today,duplicate:true });
+    }
     const result = await run("INSERT INTO user_location (user_id,location_id) VALUES (?,?)", [req.user.id,location.id]);
     const checkin = await get("SELECT id,location_id,checked_in_at FROM user_location WHERE id=?", [result.lastID]);
-    res.status(201).json({ message:"Location checked in",checkin });
+    res.status(201).json({ message:"Location checked in",checkin,duplicate:false });
   } catch { res.status(500).json({ error:"Check-in failed" }); }
 };
 
