@@ -58,16 +58,16 @@ public class AccountCollectionFragment extends Fragment {
         switch (mode) {
             case "favorite_trips":
                 title.setText("Chuyến đi đã lưu"); subtitle.setText("Hành trình bạn muốn khám phá");
-                repo.favoriteTrips((data,error,stale)->{tripItems.clear();tripItems.addAll(data);showTrips(error);}); break;
+                repo.favoriteTrips((data,error)->{tripItems.clear();tripItems.addAll(data);showTrips(error);}); break;
             case "checkins":
                 title.setText("Lịch sử check-in"); subtitle.setText("Dấu chân trên hành trình của bạn");
-                repo.checkIns((data,error,stale)->{locationItems.clear();locationItems.addAll(data);showLocations(error,true);}); break;
+                repo.checkIns((data,error)->{locationItems.clear();locationItems.addAll(data);showLocations(error,true);}); break;
             case "vouchers":
                 title.setText("Voucher của tôi"); subtitle.setText("Phần thưởng đã đổi từ điểm");
-                repo.vouchers((data,error,stale)->{voucherItems.clear();voucherItems.addAll(data);showVouchers(error);}); break;
+                repo.vouchers((data,error)->{voucherItems.clear();voucherItems.addAll(data);showVouchers(error);}); break;
             default:
                 title.setText("Địa điểm đã lưu"); subtitle.setText("Bộ sưu tập điểm đến yêu thích");
-                repo.favoriteLocations((data,error,stale)->{locationItems.clear();locationItems.addAll(data);showLocations(error,false);});
+                repo.favoriteLocations((data,error)->{locationItems.clear();locationItems.addAll(data);showLocations(error,false);});
         }
     }
 
@@ -116,7 +116,7 @@ public class AccountCollectionFragment extends Fragment {
     private void showState(int count,String error,String emptyMessage){status.setText(error!=null?error:count+" mục trong bộ sưu tập");boolean none=count==0;empty.setVisibility(none?View.VISIBLE:View.GONE);list.setVisibility(none?View.GONE:View.VISIBLE);emptyText.setText(error!=null&&error.contains("401")?"Phiên đăng nhập đã hết hạn":emptyMessage);}
     private void openSimple(SimpleCardAdapter.CardItem item){if(item.value instanceof Location){Location location=(Location)item.value;Navigation.findNavController(requireView()).navigate(R.id.locationDetailFragment,LocationDetailFragment.argsFor(location.id,location.name));}else if(item.value instanceof Voucher){Bundle args=new Bundle();args.putString("mode","voucher-detail");args.putLong("id",((Voucher)item.value).voucherId);Navigation.findNavController(requireView()).navigate(R.id.member3WorkspaceFragment,args);}}
     private void openTrip(Trip trip){Bundle args=new Bundle();args.putLong("id",trip.id);Navigation.findNavController(requireView()).navigate(R.id.tripDetailFragment,args);}
-    private void toggleTripFavorite(Trip trip,int position){repo.favoriteTrip(trip.id,true,(message,error,stale)->{if(!isAdded())return;if(error!=null){status.setText(error);return;}tripItems.removeIf(item->item.id==trip.id);showTrips(null);});}
+    private void toggleTripFavorite(Trip trip,int position){repo.favoriteTrip(trip.id,true,(message,error)->{if(!isAdded())return;if(error!=null){status.setText(error);return;}tripItems.removeIf(item->item.id==trip.id);showTrips(null);});}
     private String safe(String value){return value==null||value.isBlank()?"Chưa có thông tin":value;}
     private String date(String value){if(value==null||value.isBlank())return "Chưa rõ";String result=value.replace('T',' ').replace("Z","");return result.length()>16?result.substring(0,16):result;}
 }

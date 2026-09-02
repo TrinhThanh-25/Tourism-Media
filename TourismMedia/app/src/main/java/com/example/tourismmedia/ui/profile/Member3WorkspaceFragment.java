@@ -103,10 +103,10 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void challengeDetail() {
         header("Chi tiết thử thách", "Theo dõi hành trình của bạn");
-        repo.challengeInfo(id, (info, error, stale) -> {
+        repo.challengeInfo(id, (info, error) -> {
             if (!viewActive()) return;
             if (info == null) { empty(error); return; }
-            repo.challenge(id, (progress, progressError, sample) -> {
+            repo.challenge(id, (progress, progressError) -> {
                 if (viewActive()) bindChallenge(info, progress == null ? info : progress);
             });
         });
@@ -135,13 +135,13 @@ public class Member3WorkspaceFragment extends Fragment {
         primary.setEnabled(!claimed && progress.active);
         primary.setOnClickListener(v -> {
             if (!progress.joined) {
-                repo.joinChallenge(id, (message, error, stale) -> {
+                repo.joinChallenge(id, (message, error) -> {
                     if (!viewActive()) return;
                     toast(error == null ? "Đã tham gia thử thách" : error);
                     if (error == null) render();
                 });
             } else if (progress.eligible) {
-                repo.completeChallenge(id, (message, error, stale) -> {
+                repo.completeChallenge(id, (message, error) -> {
                     if (!viewActive()) return;
                     toast(error == null ? "Đã nhận thưởng thử thách" : error);
                     if (error == null) render();
@@ -162,7 +162,7 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void rewards() {
         header("Phần thưởng", "Voucher dành riêng cho thành viên"); top.setVisibility(View.VISIBLE); top.setOnClickListener(v -> open("vouchers", 0));
-        repo.rewards((catalog, error, stale) -> { if (!viewActive()) return; if (catalog == null) { empty(error); return; } balanceCard("Số dư của bạn", catalog.points, null); section("Đổi điểm lấy niềm vui"); content.addView(muted("Chọn phần thưởng phù hợp với hành trình của bạn.")); for (Reward reward : catalog.rewards) rewardRow(reward); });
+        repo.rewards((catalog, error) -> { if (!viewActive()) return; if (catalog == null) { empty(error); return; } balanceCard("Số dư của bạn", catalog.points, null); section("Đổi điểm lấy niềm vui"); content.addView(muted("Chọn phần thưởng phù hợp với hành trình của bạn.")); for (Reward reward : catalog.rewards) rewardRow(reward); });
     }
 
     private void balanceCard(String label, int value, View.OnClickListener listener) {
@@ -178,22 +178,22 @@ public class Member3WorkspaceFragment extends Fragment {
     }
 
     private void rewardDetail() {
-        header("Chi tiết phần thưởng", "Ưu đãi dành riêng cho Explorer"); repo.reward(id, (reward,error,stale)->{if(!viewActive())return;if(reward==null){empty(error);return;}TextView icon=text(reward.percent>0?"☕":"🎁",42,false);icon.setGravity(Gravity.CENTER);icon.setBackground(background(Color.rgb(223,242,231),22));LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(92),dp(92));ip.gravity=Gravity.CENTER_HORIZONTAL;content.addView(icon,ip);TextView name=text(reward.name,25,true);name.setGravity(Gravity.CENTER);LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.setMargins(0,dp(12),0,dp(4));content.addView(name,np);TextView desc=muted(safe(reward.description));desc.setGravity(Gravity.CENTER);content.addView(desc);LinearLayout box=card();stat(box,"Chi phí",reward.cost+" điểm");stat(box,"Mức giảm",reward.percent+"%");stat(box,"Hiệu lực",date(reward.expiresAt));stat(box,"Giới hạn",Math.max(1,reward.perUserLimit)+" lần/người");section("Điều kiện sử dụng");content.addView(muted("Không áp dụng đồng thời với ưu đãi khác. Voucher không thể hoàn lại sau khi đổi."));showActions("Quay lại","Đổi với "+reward.cost+" điểm");primary.setOnClickListener(v->open("redeem-confirm",reward.id));});
+        header("Chi tiết phần thưởng", "Ưu đãi dành riêng cho Explorer"); repo.reward(id, (reward,error)->{if(!viewActive())return;if(reward==null){empty(error);return;}TextView icon=text(reward.percent>0?"☕":"🎁",42,false);icon.setGravity(Gravity.CENTER);icon.setBackground(background(Color.rgb(223,242,231),22));LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(92),dp(92));ip.gravity=Gravity.CENTER_HORIZONTAL;content.addView(icon,ip);TextView name=text(reward.name,25,true);name.setGravity(Gravity.CENTER);LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,-2);np.setMargins(0,dp(12),0,dp(4));content.addView(name,np);TextView desc=muted(safe(reward.description));desc.setGravity(Gravity.CENTER);content.addView(desc);LinearLayout box=card();stat(box,"Chi phí",reward.cost+" điểm");stat(box,"Mức giảm",reward.percent+"%");stat(box,"Hiệu lực",date(reward.expiresAt));stat(box,"Giới hạn",Math.max(1,reward.perUserLimit)+" lần/người");section("Điều kiện sử dụng");content.addView(muted("Không áp dụng đồng thời với ưu đãi khác. Voucher không thể hoàn lại sau khi đổi."));showActions("Quay lại","Đổi với "+reward.cost+" điểm");primary.setOnClickListener(v->open("redeem-confirm",reward.id));});
     }
 
     private void redeemConfirm() {
-        header("Xác nhận đổi quà", "Kiểm tra trước khi tiếp tục"); repo.reward(id,(reward,error,stale)->{if(!viewActive())return;repo.points((balance,pointsError,sample)->{if(!viewActive())return;if(reward==null||balance==null){empty(error!=null?error:pointsError);return;}voucherCard(reward.name,reward.percent+"%","Hiệu lực sau khi đổi");LinearLayout box=card();stat(box,"Điểm hiện có",String.format(Locale.getDefault(),"%,d",balance.points));stat(box,"Chi phí đổi","−"+reward.cost);stat(box,"Số dư sau khi đổi",String.format(Locale.getDefault(),"%,d",balance.points-reward.cost));CheckBox agree=new CheckBox(requireContext());agree.setChecked(true);agree.setText("Tôi đã đọc và đồng ý với điều kiện sử dụng.");agree.setTextColor(MUTED);content.addView(agree);showActions("Quay lại","Xác nhận đổi thưởng");primary.setOnClickListener(v->{if(!agree.isChecked()){toast("Vui lòng đồng ý điều kiện sử dụng");return;}repo.redeem(id,(message,redeemError,s)->{if(!viewActive())return;toast(redeemError==null?"Đổi thưởng thành công":redeemError);if(redeemError==null)open("vouchers",0);});});});});
+        header("Xác nhận đổi quà", "Kiểm tra trước khi tiếp tục"); repo.reward(id,(reward,error)->{if(!viewActive())return;repo.points((balance,pointsError)->{if(!viewActive())return;if(reward==null||balance==null){empty(error!=null?error:pointsError);return;}voucherCard(reward.name,reward.percent+"%","Hiệu lực sau khi đổi");LinearLayout box=card();stat(box,"Điểm hiện có",String.format(Locale.getDefault(),"%,d",balance.points));stat(box,"Chi phí đổi","−"+reward.cost);stat(box,"Số dư sau khi đổi",String.format(Locale.getDefault(),"%,d",balance.points-reward.cost));CheckBox agree=new CheckBox(requireContext());agree.setChecked(true);agree.setText("Tôi đã đọc và đồng ý với điều kiện sử dụng.");agree.setTextColor(MUTED);content.addView(agree);showActions("Quay lại","Xác nhận đổi thưởng");primary.setOnClickListener(v->{if(!agree.isChecked()){toast("Vui lòng đồng ý điều kiện sử dụng");return;}repo.redeem(id,(message,redeemError)->{if(!viewActive())return;toast(redeemError==null?"Đổi thưởng thành công":redeemError);if(redeemError==null)open("vouchers",0);});});});});
     }
 
     private void points() {
-        header("Điểm thành viên", "Mỗi hành trình đều được ghi nhận"); repo.points((balance,error,stale)->{if(!viewActive())return;if(balance==null){empty(error);return;}balanceCard("Số dư hiện tại",balance.points,v->open("rewards",0));repo.pointTransactions((items,e,s)->{if(!viewActive())return;int earned=0,used=0;for(PointTransaction item:items){if(item.points>=0)earned+=item.points;else used+=-item.points;}LinearLayout summary=new LinearLayout(requireContext());summary.setOrientation(LinearLayout.HORIZONTAL);LinearLayout left=summaryBox("Đã tích lũy","+"+earned,Color.rgb(47,107,80));LinearLayout right=summaryBox("Đã sử dụng","−"+used,Color.rgb(237,106,90));LinearLayout.LayoutParams half=new LinearLayout.LayoutParams(0,-2,1);half.setMargins(0,0,dp(5),0);summary.addView(left,half);LinearLayout.LayoutParams half2=new LinearLayout.LayoutParams(0,-2,1);half2.setMargins(dp(5),0,0,0);summary.addView(right,half2);content.addView(summary);section("Giao dịch gần đây").setOnClickListener(v->open("points-history",0));for(int i=0;i<Math.min(3,items.size());i++)transactionRow(items.get(i));});});
+        header("Điểm thành viên", "Mỗi hành trình đều được ghi nhận"); repo.points((balance,error)->{if(!viewActive())return;if(balance==null){empty(error);return;}balanceCard("Số dư hiện tại",balance.points,v->open("rewards",0));repo.pointTransactions((items,e)->{if(!viewActive())return;int earned=0,used=0;for(PointTransaction item:items){if(item.points>=0)earned+=item.points;else used+=-item.points;}LinearLayout summary=new LinearLayout(requireContext());summary.setOrientation(LinearLayout.HORIZONTAL);LinearLayout left=summaryBox("Đã tích lũy","+"+earned,Color.rgb(47,107,80));LinearLayout right=summaryBox("Đã sử dụng","−"+used,Color.rgb(237,106,90));LinearLayout.LayoutParams half=new LinearLayout.LayoutParams(0,-2,1);half.setMargins(0,0,dp(5),0);summary.addView(left,half);LinearLayout.LayoutParams half2=new LinearLayout.LayoutParams(0,-2,1);half2.setMargins(dp(5),0,0,0);summary.addView(right,half2);content.addView(summary);section("Giao dịch gần đây").setOnClickListener(v->open("points-history",0));for(int i=0;i<Math.min(3,items.size());i++)transactionRow(items.get(i));});});
     }
 
     private LinearLayout summaryBox(String label,String amount,int color){LinearLayout box=new LinearLayout(requireContext());box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(16),dp(14),dp(16),dp(14));box.setBackground(background(Color.WHITE,18));box.addView(muted(label));TextView value=text(amount,23,true);value.setTextColor(color);box.addView(value);return box;}
     private void pointsHistory() {
         header("Lịch sử điểm", "Tất cả giao dịch trong tài khoản");
         TextView[] tabs = segmented("Tất cả", "Đã nhận", "Đã dùng");
-        repo.pointTransactions((items, error, stale) -> {
+        repo.pointTransactions((items, error) -> {
             if (!viewActive()) return;
             if (items.isEmpty()) { empty(error == null ? "Chưa có giao dịch điểm" : error); return; }
             List<View> rows = new ArrayList<>();
@@ -239,7 +239,7 @@ public class Member3WorkspaceFragment extends Fragment {
                 if (loaded[0]) filterVouchers(vouchers, rows, selected, tabEmpty);
             });
         }
-        repo.vouchers((items, error, stale) -> {
+        repo.vouchers((items, error) -> {
             if (!viewActive()) return;
             loaded[0] = true;
             if (error != null && items.isEmpty()) {
@@ -276,7 +276,7 @@ public class Member3WorkspaceFragment extends Fragment {
     }
     private void voucherDetail() {
         header("Chi tiết voucher", "Mã dùng để trình diễn");
-        repo.vouchers((items, error, stale) -> {
+        repo.vouchers((items, error) -> {
             if (!viewActive()) return;
             Voucher found = null;
             for (Voucher voucher : items) if (voucher.voucherId == id) found = voucher;
@@ -313,7 +313,7 @@ public class Member3WorkspaceFragment extends Fragment {
 
     private void editProfile() {
         header("Chỉnh sửa hồ sơ", "Thông tin hiển thị trong cộng đồng");
-        repo.profile((profile, error, stale) -> {
+        repo.profile((profile, error) -> {
             if (!viewActive()) return;
             if (profile == null) { empty(error); return; }
             LinearLayout form = card();
@@ -342,7 +342,7 @@ public class Member3WorkspaceFragment extends Fragment {
                     return;
                 }
                 primary.setEnabled(false);
-                repo.uploadImage(selectedAvatar, (url, uploadError, ignored) -> {
+                repo.uploadImage(selectedAvatar, (url, uploadError) -> {
                     if (!viewActive()) return;
                     primary.setEnabled(true);
                     if (uploadError != null || url == null) {
@@ -361,13 +361,13 @@ public class Member3WorkspaceFragment extends Fragment {
     }
 
     private void updateProfile(Map<String,String> body) {
-        repo.updateProfile(body, (message, error, ignored) -> {
+        repo.updateProfile(body, (message, error) -> {
             if (!viewActive()) return;
             toast(error == null ? message : error);
             if (error == null) Navigation.findNavController(requireView()).navigateUp();
         });
     }
-    private void changePassword(){header("Đổi mật khẩu","Bảo vệ tài khoản của bạn");section("Mật khẩu mới");content.addView(muted("Nên sử dụng ít nhất 8 ký tự, gồm chữ và số."));LinearLayout form=card();EditText current=field(form,"Mật khẩu hiện tại","",true);EditText next=field(form,"Mật khẩu mới","",true);EditText confirm=field(form,"Xác nhận mật khẩu","",true);TextView rule=muted("✓ Ít nhất 8 ký tự\n○ Có chữ hoa, chữ thường và số");form.addView(rule);showActions("Hủy","Cập nhật mật khẩu");primary.setOnClickListener(v->{String password=next.getText().toString();if(password.length()<8){next.setError("Cần ít nhất 8 ký tự");return;}if(!password.equals(confirm.getText().toString())){confirm.setError("Mật khẩu chưa khớp");return;}repo.changePassword(current.getText().toString(),password,(message,error,s)->{if(!viewActive())return;toast(error==null?"Đổi mật khẩu thành công":error);if(error==null)Navigation.findNavController(requireView()).navigateUp();});});}
+    private void changePassword(){header("Đổi mật khẩu","Bảo vệ tài khoản của bạn");section("Mật khẩu mới");content.addView(muted("Nên sử dụng ít nhất 8 ký tự, gồm chữ và số."));LinearLayout form=card();EditText current=field(form,"Mật khẩu hiện tại","",true);EditText next=field(form,"Mật khẩu mới","",true);EditText confirm=field(form,"Xác nhận mật khẩu","",true);TextView rule=muted("✓ Ít nhất 8 ký tự\n○ Có chữ hoa, chữ thường và số");form.addView(rule);showActions("Hủy","Cập nhật mật khẩu");primary.setOnClickListener(v->{String password=next.getText().toString();if(password.length()<8){next.setError("Cần ít nhất 8 ký tự");return;}if(!password.equals(confirm.getText().toString())){confirm.setError("Mật khẩu chưa khớp");return;}repo.changePassword(current.getText().toString(),password,(message,error)->{if(!viewActive())return;toast(error==null?"Đổi mật khẩu thành công":error);if(error==null)Navigation.findNavController(requireView()).navigateUp();});});}
 
     private EditText field(LinearLayout parent,String label,String value,boolean password){TextView caption=text(label,13,true);caption.setTextColor(MUTED);parent.addView(caption);EditText input=new EditText(requireContext());input.setText(value==null?"":value);input.setHint("Nhập "+label.toLowerCase(Locale.ROOT));input.setSingleLine(true);input.setTextColor(INK);input.setHintTextColor(Color.rgb(160,170,164));GradientDrawable bg=background(Color.WHITE,14);bg.setStroke(dp(1),Color.rgb(228,232,227));input.setBackground(bg);input.setPadding(dp(13),0,dp(13),0);if(password)input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.setMargins(0,dp(6),0,dp(14));parent.addView(input,p);return input;}
     private TextView[] segmented(String... labels) {

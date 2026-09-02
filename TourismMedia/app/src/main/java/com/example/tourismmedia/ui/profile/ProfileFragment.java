@@ -46,7 +46,7 @@ public class ProfileFragment extends Fragment {
         view.findViewById(R.id.profile_vouchers).setOnClickListener(v -> workspace("vouchers", 0));
         view.findViewById(R.id.profile_points_row).setOnClickListener(v -> workspace("points", 0));
         view.findViewById(R.id.logout_button).setOnClickListener(v -> {
-            repo.logout((message, error, stale) -> {
+            repo.logout((message, error) -> {
                 if (!isAdded()) return;
                 startActivity(new Intent(requireContext(), AuthActivity.class));
                 requireActivity().finish();
@@ -56,7 +56,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void load() {
-        repo.profile((profile, error, stale) -> {
+        repo.profile((profile, error) -> {
             if (!viewActive()) return;
             if (profile == null) { toast(error == null ? "Không tải được hồ sơ" : error); return; }
             name.setText(profile.username);
@@ -72,10 +72,10 @@ public class ProfileFragment extends Fragment {
             avatar.setVisibility(hasAvatar ? View.GONE : View.VISIBLE);
             if (hasAvatar) Glide.with(this).load(profile.avatar).centerCrop().error(R.drawable.bg_hero).into(avatarImage);
         });
-        repo.myTrips((data, error, stale) -> { if (viewActive()) trips.setText(data.size() + "\nChuyến đi"); });
-        repo.checkIns((data, error, stale) -> { if (viewActive()) checkins.setText(data.size() + "\nCheck-in"); });
-        repo.favoriteLocations((data, error, stale) -> { if (viewActive()) savedLocations.setText(data.size() + " ›"); });
-        repo.favoriteTrips((data, error, stale) -> { if (viewActive()) savedTrips.setText(data.size() + " ›"); });
+        repo.myTrips((data, error) -> { if (viewActive()) trips.setText(data.size() + "\nChuyến đi"); });
+        repo.checkIns((data, error) -> { if (viewActive()) checkins.setText(data.size() + "\nCheck-in"); });
+        repo.favoriteLocations((data, error) -> { if (viewActive()) savedLocations.setText(data.size() + " ›"); });
+        repo.favoriteTrips((data, error) -> { if (viewActive()) savedTrips.setText(data.size() + " ›"); });
     }
 
     private void collection(String mode) {

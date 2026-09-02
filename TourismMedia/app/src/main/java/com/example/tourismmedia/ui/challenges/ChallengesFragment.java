@@ -24,11 +24,11 @@ public class ChallengesFragment extends Fragment {
         list.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new ChallengeAdapter(this::detail);
         list.setAdapter(adapter);
-        repo.myChallenges((data, error, stale) -> {
+        repo.myChallenges((data, error) -> {
             if (error == null) adapter.submit(data);
-            else repo.challenges((publicData, publicError, sample) -> adapter.submit(publicData));
+            else repo.challenges((publicData, publicError) -> adapter.submit(publicData));
         });
-        repo.points((balance, error, stale) -> {
+        repo.points((balance, error) -> {
             if (balance != null) ((TextView) view.findViewById(R.id.challenge_points)).setText(String.format(Locale.getDefault(), "%,d", balance.points));
         });
         view.findViewById(R.id.open_rewards).setOnClickListener(v -> open("rewards", 0));
