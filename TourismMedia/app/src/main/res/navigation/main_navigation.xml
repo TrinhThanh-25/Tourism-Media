@@ -10,12 +10,9 @@
     <fragment android:id="@+id/tripsFragment" android:name="com.example.tourismmedia.ui.trips.TripsFragment" android:label="@string/nav_trips" />
     <fragment android:id="@+id/challengesFragment" android:name="com.example.tourismmedia.ui.challenges.ChallengesFragment" android:label="@string/nav_challenges" />
     <fragment android:id="@+id/profileFragment" android:name="com.example.tourismmedia.ui.profile.ProfileFragment" android:label="@string/nav_profile" />
-    <!-- Member 1 - Home/Explore/Location -->
-    <fragment android:id="@+id/locationDetailFragment" android:name="com.example.tourismmedia.ui.location.LocationDetailFragment" android:label="Place details" />
-    <fragment android:id="@+id/accountCollectionFragment" android:name="com.example.tourismmedia.ui.profile.AccountCollectionFragment" android:label="Account data" />
-    <!-- Member 2 - Trips/Itinerary -->
+    <fragment android:id="@+id/locationDetailFragment" android:name="com.example.tourismmedia.ui.location.LocationDetailFragment" android:label="Chi tiết địa điểm" />
+    <fragment android:id="@+id/accountCollectionFragment" android:name="com.example.tourismmedia.ui.profile.AccountCollectionFragment" android:label="Dữ liệu tài khoản" />
     <fragment android:id="@+id/tripDetailFragment" android:name="com.example.tourismmedia.ui.trips.TripDetailFragment" android:label="Chi tiết chuyến đi" />
     <fragment android:id="@+id/tripWorkspaceFragment" android:name="com.example.tourismmedia.ui.trips.TripWorkspaceFragment" android:label="Quản lý chuyến đi" />
-    <!-- Member 3 - Profile/Gamification -->
     <fragment android:id="@+id/member3WorkspaceFragment" android:name="com.example.tourismmedia.ui.profile.Member3WorkspaceFragment" android:label="Tài khoản và phần thưởng" />
 </navigation>
