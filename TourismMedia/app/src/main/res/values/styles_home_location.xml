@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Member 1 – Home / Explore / Location. Kept out of themes.xml to avoid merge conflicts. -->
 <resources>
     <style name="TourismSectionTitle">
         <item name="android:paddingStart">16dp</item>
