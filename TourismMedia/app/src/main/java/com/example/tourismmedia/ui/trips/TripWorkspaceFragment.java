@@ -103,7 +103,7 @@ public class TripWorkspaceFragment extends Fragment {
         boolean loadsTrip = id > 0 && !mode.equals("filter") && !mode.equals("reviews") && !mode.equals("write-review");
         if (loadsTrip) {
             actionBar.setVisibility(View.GONE);
-            repo.trip(id, (item, error, stale) -> {
+            repo.trip(id, (item, error) -> {
                 if (!viewActive()) return;
                 if (item == null) {
                     Toast.makeText(requireContext(), error == null ? "Không thể tải chuyến đi" : error, Toast.LENGTH_SHORT).show();
@@ -349,7 +349,7 @@ public class TripWorkspaceFragment extends Fragment {
         }
         primary.setEnabled(false);
         secondary.setEnabled(false);
-        repo.uploadImage(selectedCover, (url, uploadError, ignored) -> {
+        repo.uploadImage(selectedCover, (url, uploadError) -> {
             if (!viewActive()) return;
             primary.setEnabled(true);
             secondary.setEnabled(true);
@@ -364,14 +364,14 @@ public class TripWorkspaceFragment extends Fragment {
     }
 
     private void persistTrip(boolean editing, boolean publishAfterCreate, Map<String, Object> body) {
-        repo.saveTrip(editing ? id : null, body, (item, error, stale) -> {
+        repo.saveTrip(editing ? id : null, body, (item, error) -> {
             if (!viewActive()) return;
             if (error != null || item == null) {
                 Toast.makeText(requireContext(), error == null ? "Không thể lưu chuyến đi" : error, Toast.LENGTH_LONG).show();
                 return;
             }
             if (!editing && publishAfterCreate) {
-                repo.setTripPublished(item.id, true, (published, publishError, ignored) -> {
+                repo.setTripPublished(item.id, true, (published, publishError) -> {
                     if (!viewActive()) return;
                     Toast.makeText(requireContext(), publishError == null
                             ? "Đã tạo và đăng chuyến đi lên cộng đồng"
@@ -626,7 +626,7 @@ public class TripWorkspaceFragment extends Fragment {
         EditText search = searchField("Tìm địa điểm...");
         List<CheckBox> rows = new ArrayList<>();
         List<Location> visibleLocations = new ArrayList<>();
-        repo.locations("", (data, error, stale) -> {
+        repo.locations("", (data, error) -> {
             if (!viewActive()) return;
             for (Location location : data.subList(0, Math.min(30, data.size()))) {
                 CheckBox box = new CheckBox(requireContext());
@@ -698,7 +698,7 @@ public class TripWorkspaceFragment extends Fragment {
         }
         Map<String, Object> body = new HashMap<>();
         body.put("locations", items);
-        repo.saveTrip(id, body, (item, error, stale) -> {
+        repo.saveTrip(id, body, (item, error) -> {
             if (!viewActive()) return;
             Toast.makeText(requireContext(), error == null ? "Đã cập nhật itinerary" : error, Toast.LENGTH_LONG).show();
             if (error == null) Navigation.findNavController(requireView()).navigateUp();
@@ -794,7 +794,7 @@ public class TripWorkspaceFragment extends Fragment {
         }
         Map<String, Object> body = new HashMap<>();
         body.put("locations", items);
-        repo.saveTrip(id, body, (updated, error, stale) -> {
+        repo.saveTrip(id, body, (updated, error) -> {
             if (!viewActive()) return;
             Toast.makeText(requireContext(), error == null ? "Itinerary đã được lưu" : error, Toast.LENGTH_SHORT).show();
             if (error == null) Navigation.findNavController(requireView()).navigateUp();
@@ -814,7 +814,7 @@ public class TripWorkspaceFragment extends Fragment {
             render();
         });
         content.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
-        repo.tripReviews(id, (data, error, stale) -> {
+        repo.tripReviews(id, (data, error) -> {
             if (!viewActive()) return;
             heading(data.size() + " đánh giá");
             if (data.isEmpty()) empty("Chưa có đánh giá", "Hãy là người đầu tiên chia sẻ trải nghiệm.");
@@ -846,7 +846,7 @@ public class TripWorkspaceFragment extends Fragment {
         comment.setMinHeight(dp(120));
         primary.setText("Gửi đánh giá");
         primary.setOnClickListener(v -> repo.createTripReview(id, (int) stars.getRating(),
-                comment.getText().toString(), (item, error, stale) -> {
+                comment.getText().toString(), (item, error) -> {
                     if (!viewActive()) return;
                     Toast.makeText(requireContext(), error == null ? "Đã gửi đánh giá" : error, Toast.LENGTH_LONG).show();
                     if (error == null) {

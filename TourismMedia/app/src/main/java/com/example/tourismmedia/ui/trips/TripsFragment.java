@@ -113,7 +113,7 @@ public class TripsFragment extends Fragment {
     }
 
     private void load() {
-        AppRepository.Result<List<Trip>> result = (data, error, stale) -> {
+        AppRepository.Result<List<Trip>> result = (data, error) -> {
             if (!viewActive()) return;
             List<Trip> visibleTrips = present(data);
             adapter.setOwnerMode(TAB_MINE.equals(activeTab));
@@ -187,7 +187,7 @@ public class TripsFragment extends Fragment {
 
     private void toggleFavorite(Trip trip, int position) {
         boolean saved = trip.favorite == 1;
-        repo.favoriteTrip(trip.id, saved, (message, error, stale) -> {
+        repo.favoriteTrip(trip.id, saved, (message, error) -> {
             if (!viewActive()) return;
             if (error != null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
@@ -201,7 +201,7 @@ public class TripsFragment extends Fragment {
 
     private void togglePublished(Trip trip, int position) {
         boolean publish = trip.published != 1;
-        repo.setTripPublished(trip.id, publish, (updated, error, stale) -> {
+        repo.setTripPublished(trip.id, publish, (updated, error) -> {
             if (!viewActive()) return;
             if (error != null || updated == null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();

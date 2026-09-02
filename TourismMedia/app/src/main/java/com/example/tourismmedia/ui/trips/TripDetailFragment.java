@@ -61,7 +61,7 @@ public class TripDetailFragment extends Fragment {
         });
         list.setAdapter(adapter);
 
-        repository.trip(id, (loaded, error, stale) -> {
+        repository.trip(id, (loaded, error) -> {
             if (!isAdded() || getView() == null) return;
             if (loaded == null) { Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show(); return; }
             trip = loaded;
@@ -102,7 +102,7 @@ public class TripDetailFragment extends Fragment {
         if (trip == null) return;
         boolean saved = trip.favorite == 1;
         saveButton.setEnabled(false);
-        repository.favoriteTrip(id, saved, (message, error, stale) -> {
+        repository.favoriteTrip(id, saved, (message, error) -> {
             if (!isAdded()) return;
             saveButton.setEnabled(true);
             if (error != null) { Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show(); return; }
@@ -117,7 +117,7 @@ public class TripDetailFragment extends Fragment {
         if (!ownsTrip()) return;
         boolean publish = trip.published != 1;
         publishButton.setEnabled(false);
-        repository.setTripPublished(id, publish, (updated, error, stale) -> {
+        repository.setTripPublished(id, publish, (updated, error) -> {
             if (!isAdded()) return;
             publishButton.setEnabled(true);
             if (error != null || updated == null) {
