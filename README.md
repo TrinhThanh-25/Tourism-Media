@@ -8,16 +8,23 @@ database runtime và build output không được commit.
 Yêu cầu Node.js 20 trở lên:
 
 ```bash
-cd Travel-App-Server
 cp .env.example .env
+cd Travel-App-Server
 npm install
 ```
 
 Mở `.env`, thay `JWT_SECRET` bằng giá trị riêng. Đặt `PUBLIC_BASE_URL` thành địa
 chỉ Backend mà thiết bị Android truy cập được để URL avatar/ảnh trip dùng được
 trên các máy khác, sau đó chạy `npm start`.
-Lần chạy đầu, server tự copy `travel_app.template.db` tới `DB_PATH`. Lệnh
-`npm test` chạy smoke test trên database tạm và không sửa dữ liệu runtime.
+Lần chạy đầu, server tự copy `travel_app.template.db` tới `DB_PATH`.
+
+### Tài khoản quay demo
+
+- Email: `demo@tourism.vn`
+- Mật khẩu: `Demo@123`
+
+Tài khoản có sẵn hồ sơ, chuyến đi riêng/công khai, mục đã lưu, check-in, tiến độ
+thử thách, lịch sử điểm và voucher đang hoạt động/đã sử dụng/hết hạn.
 
 ## Android
 
@@ -45,7 +52,7 @@ Không đặt JWT secret hoặc API key trong `gradle.properties` của reposito
 
 ## Chạy demo tự động
 
-Sau khi tạo Backend `.env`, chạy `./run_demo.sh TEN_AVD`. Script tự dò SDK, JDK
+Sau khi tạo `.env` ở thư mục gốc, chạy `./run_demo.sh TEN_AVD`. Script tự dò SDK, JDK
 và GPU. Các biến tùy chọn:
 
 - `TOURISM_JAVA_HOME`: JDK 17/21 đầy đủ.

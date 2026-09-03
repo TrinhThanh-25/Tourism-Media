@@ -101,4 +101,5 @@ __pycache__/
 
 # UI mockups and screenshots are not required to build Backend or Android
 /ui-prototype/
+/image.png
 **/screenshots/

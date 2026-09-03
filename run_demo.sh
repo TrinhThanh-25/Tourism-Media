@@ -4,10 +4,11 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$SCRIPT_DIR/Travel-App-Server"
 ANDROID_DIR="$SCRIPT_DIR/TourismMedia"
+ENV_FILE="$SCRIPT_DIR/.env"
 LOG_DIR="$SCRIPT_DIR/.demo-logs"
 AVD_NAME="${1:-Pixel_7}"
 GPU_MODE="${TOURISM_GPU_MODE:-auto}"
-SERVER_PORT="${TOURISM_SERVER_PORT:-$(sed -n 's/^PORT=//p' "$SERVER_DIR/.env" 2>/dev/null | head -n 1)}"
+SERVER_PORT="${TOURISM_SERVER_PORT:-$(sed -n 's/^PORT=//p' "$ENV_FILE" 2>/dev/null | head -n 1)}"
 SERVER_PORT="${SERVER_PORT:-3000}"
 SERVER_URL="http://127.0.0.1:${SERVER_PORT}/api"
 export TOURISM_API_BASE_URL="${TOURISM_API_BASE_URL:-http://10.0.2.2:${SERVER_PORT}/}"
@@ -27,8 +28,21 @@ fail() { printf '\033[1;31m[Lỗi]\033[0m %s\n' "$*" >&2; exit 1; }
 mkdir -p "$LOG_DIR"
 
 command -v flock >/dev/null 2>&1 || fail "Không tìm thấy flock (gói util-linux)."
-exec 9>"$LOG_DIR/run_demo.lock"
-flock -n 9 || fail "Một phiên run_demo.sh khác đang chạy. Hãy dừng phiên cũ bằng Ctrl+C trước."
+LOCK_FILE="$LOG_DIR/run_demo.lock"
+if [[ "${TOURISM_DEMO_LOCKED:-}" != "1" ]]; then
+  # Let flock own the lock in a wrapper process and close its descriptor in the
+  # script. This prevents long-lived children such as the ADB daemon from
+  # inheriting the lock after this script has already exited.
+  set +e
+  TOURISM_DEMO_LOCKED=1 flock --nonblock --conflict-exit-code 73 --close \
+    "$LOCK_FILE" "$0" "$@"
+  RUN_STATUS=$?
+  set -e
+  if (( RUN_STATUS == 73 )); then
+    fail "Một phiên run_demo.sh khác đang chạy. Hãy dừng phiên cũ bằng Ctrl+C trước."
+  fi
+  exit "$RUN_STATUS"
+fi
 
 cleanup() {
   [[ "$CLEANED_UP" == true ]] && return
@@ -81,6 +95,16 @@ done
 [[ -n "$JDK_DIR" ]] || fail "Không tìm thấy JDK đầy đủ có java, javac và jlink. Hãy đặt TOURISM_JAVA_HOME tới JDK 17/21."
 export JAVA_HOME="$JDK_DIR"
 export PATH="$JAVA_HOME/bin:$PATH"
+# Gradle may otherwise auto-detect an IDE-bundled runtime that has java/javac
+# but no jlink. Pin both its daemon JVM and Java toolchain discovery to the
+# complete JDK selected above so the script behaves consistently per machine.
+GRADLE_JAVA_ARGS=(
+  --no-daemon
+  "-Dorg.gradle.java.home=$JDK_DIR"
+  -Porg.gradle.java.installations.auto-detect=false
+  -Porg.gradle.java.installations.auto-download=false
+  "-Porg.gradle.java.installations.paths=$JDK_DIR"
+)
 info "Sử dụng JDK đầy đủ tại $JAVA_HOME"
 
 if [[ "$GPU_MODE" == "auto" ]]; then
@@ -125,7 +149,7 @@ if [[ ! -d "$SERVER_DIR/node_modules" ]]; then
   (cd "$SERVER_DIR" && npm install)
 fi
 
-[[ -f "$SERVER_DIR/.env" ]] || fail "Thiếu Travel-App-Server/.env. Hãy copy .env.example thành .env và đặt JWT_SECRET riêng."
+[[ -f "$ENV_FILE" ]] || fail "Thiếu .env tại thư mục gốc. Hãy copy .env.example thành .env và đặt JWT_SECRET riêng."
 
 if curl --silent --fail "$SERVER_URL" >/dev/null 2>&1; then
   info "Backend đã chạy tại $SERVER_URL"
@@ -196,7 +220,7 @@ done
 [[ "$("$ADB_BIN" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]] || fail "Emulator không boot sau 180 giây."
 
 info "Đang build APK debug..."
-(cd "$ANDROID_DIR" && ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" :app:assembleDebug)
+(cd "$ANDROID_DIR" && ./gradlew "${GRADLE_JAVA_ARGS[@]}" :app:assembleDebug)
 
 APK_PATH="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
 [[ -f "$APK_PATH" ]] || fail "Không tìm thấy APK tại $APK_PATH"
