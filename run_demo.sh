@@ -11,8 +11,10 @@ GPU_MODE="${TOURISM_GPU_MODE:-auto}"
 SERVER_PORT="${TOURISM_SERVER_PORT:-$(sed -n 's/^PORT=//p' "$ENV_FILE" 2>/dev/null | head -n 1)}"
 SERVER_PORT="${SERVER_PORT:-3000}"
 SERVER_URL="http://127.0.0.1:${SERVER_PORT}/api"
-export TOURISM_API_BASE_URL="${TOURISM_API_BASE_URL:-http://10.0.2.2:${SERVER_PORT}/}"
-SERVER_PUBLIC_URL="${PUBLIC_BASE_URL:-${TOURISM_API_BASE_URL%/}}"
+ENV_API_BASE_URL="$(sed -n 's/^TOURISM_API_BASE_URL=//p' "$ENV_FILE" 2>/dev/null | head -n 1)"
+export TOURISM_API_BASE_URL="${TOURISM_API_BASE_URL:-${ENV_API_BASE_URL:-http://10.0.2.2:${SERVER_PORT}/}}"
+ENV_PUBLIC_BASE_URL="$(sed -n 's/^PUBLIC_BASE_URL=//p' "$ENV_FILE" 2>/dev/null | head -n 1)"
+SERVER_PUBLIC_URL="${PUBLIC_BASE_URL:-${ENV_PUBLIC_BASE_URL:-${TOURISM_API_BASE_URL%/}}}"
 PACKAGE_NAME="com.example.tourismmedia"
 LAUNCHER_ACTIVITY="$PACKAGE_NAME/.auth.AuthActivity"
 
@@ -150,6 +152,10 @@ if [[ ! -d "$SERVER_DIR/node_modules" ]]; then
 fi
 
 [[ -f "$ENV_FILE" ]] || fail "Thiếu .env tại thư mục gốc. Hãy copy .env.example thành .env và đặt JWT_SECRET riêng."
+AI_KEY_VALUE="$(sed -n 's/^AI_API_KEY=//p' "$ENV_FILE" | head -n 1)"
+if [[ -z "$AI_KEY_VALUE" || "$AI_KEY_VALUE" == "replace-with-your-provider-api-key" ]]; then
+  info "Cảnh báo: AI_API_KEY đang trống; ứng dụng vẫn chạy nhưng chatbot sẽ báo chưa được cấu hình."
+fi
 
 if curl --silent --fail "$SERVER_URL" >/dev/null 2>&1; then
   info "Backend đã chạy tại $SERVER_URL"

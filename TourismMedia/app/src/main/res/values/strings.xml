@@ -5,4 +5,15 @@
     <string name="nav_trips">Chuyến đi</string>
     <string name="nav_challenges">Thử thách</string>
     <string name="nav_profile">Tài khoản</string>
+    <string name="chat_open">Mở trợ lý du lịch</string>
+    <string name="chat_close">Đóng trợ lý du lịch</string>
+    <string name="chat_title">Trợ lý Du lịch</string>
+    <string name="chat_status">AI • Sẵn sàng tư vấn</string>
+    <string name="chat_welcome">Xin chào! Bạn muốn khám phá địa điểm nào, đi trong bao lâu và ngân sách khoảng bao nhiêu?</string>
+    <string name="chat_hint">Nhập câu hỏi của bạn…</string>
+    <string name="chat_send">Gửi câu hỏi</string>
+    <string name="chat_typing">Đang tìm gợi ý phù hợp…</string>
+    <string name="chat_suggestion_weekend">Đi đâu cuối tuần?</string>
+    <string name="chat_suggestion_budget">Gợi ý theo ngân sách</string>
+    <string name="chat_suggestion_nha_trang">Một ngày ở Nha Trang</string>
 </resources>

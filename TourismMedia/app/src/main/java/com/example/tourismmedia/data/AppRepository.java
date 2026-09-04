@@ -10,6 +10,8 @@ import androidx.annotation.NonNull;
 
 import com.example.tourismmedia.data.api.ApiService;
 import com.example.tourismmedia.data.model.AppModels.AuthResponse;
+import com.example.tourismmedia.data.model.AppModels.AiChatResponse;
+import com.example.tourismmedia.data.model.AppModels.ChatTurn;
 import com.example.tourismmedia.data.model.AppModels.Challenge;
 import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.LocationImage;
@@ -164,6 +166,17 @@ public class AppRepository {
                 result.onResult(null, "Không kết nối được máy chủ: " + throwable.getMessage());
             }
         });
+    }
+
+    // ---------------------------------------------------------- AI assistant
+
+    public void askTravelAssistant(List<ChatTurn> history, String prompt,
+                                   Result<AiChatResponse> result) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", prompt);
+        body.put("history", history);
+        single(api.aiChat(session.authorization(), body), result,
+                "Trợ lý AI tạm thời chưa phản hồi");
     }
 
     // ------------------------------------------------------------- locations

@@ -16,8 +16,11 @@ import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.example.tourismmedia.auth.AuthActivity;
 import com.example.tourismmedia.data.SessionManager;
+import com.example.tourismmedia.ui.chat.AiChatBottomSheet;
 
 public class MainActivity extends AppCompatActivity {
+
+    private AiChatBottomSheet aiChat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
 
         NavController navController = navHostFragment.getNavController();
         BottomNavigationView bottomNavigation = findViewById(R.id.bottom_navigation);
+        aiChat = new AiChatBottomSheet(this);
+        findViewById(R.id.ai_chat_fab).setOnClickListener(view -> aiChat.show());
         NavigationUI.setupWithNavController(bottomNavigation, navController);
         bottomNavigation.setOnItemSelectedListener(item -> {
             int destinationId = item.getItemId();
@@ -59,6 +64,12 @@ public class MainActivity extends AppCompatActivity {
         });
         navController.addOnDestinationChangedListener((controller, destination, arguments) ->
                 bottomNavigation.setVisibility(isFullScreenDestination(destination.getId()) ? View.GONE : View.VISIBLE));
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (aiChat != null) aiChat.dismiss();
+        super.onDestroy();
     }
 
     /** Destinations that own the whole screen and hide the bottom bar. */

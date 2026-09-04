@@ -10,7 +10,6 @@ import { UPLOAD_DIR } from "./config/uploads.js";
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 // Import DB dynamically after dotenv is configured so DB can read DB_PATH
 const dbModule = await import("./db/connect.js");
-const db = dbModule.default;
 const dbReady = dbModule.ready;
 
 // Wait for DB creation/migrations before loading routes that may query the DB
@@ -24,11 +23,12 @@ const [
   rewardRoutesModule,
   locationImageRoutesModule,
   authRoutesModule,
-	reviewRoutesModule,
-	tripReviewRoutesModule,
-	pointsRoutesModule,
+  reviewRoutesModule,
+  tripReviewRoutesModule,
+  pointsRoutesModule,
   tripsRoutesModule,
-  uploadRoutesModule
+  uploadRoutesModule,
+  aiRoutesModule
 ] = await Promise.all([
   import('./routes/locationRoutes.js'),
   import('./routes/challengeRoutes.js'),
@@ -36,11 +36,12 @@ const [
   import('./routes/rewardRoutes.js'),
   import('./routes/locationImageRoutes.js'),
   import('./routes/authRoutes.js'),
-	import('./routes/locationReviewRoutes.js'),
-	import('./routes/tripReviewRoutes.js'),
-	import('./routes/pointsRoutes.js'),
-	import('./routes/tripsRoutes.js'),
-  import('./routes/uploadRoutes.js')
+  import('./routes/locationReviewRoutes.js'),
+  import('./routes/tripReviewRoutes.js'),
+  import('./routes/pointsRoutes.js'),
+  import('./routes/tripsRoutes.js'),
+  import('./routes/uploadRoutes.js'),
+  import('./routes/aiRoutes.js')
 ]);
 
 const locationRoutes = locationRoutesModule.default;
@@ -54,10 +55,11 @@ const tripReviewRoutes = tripReviewRoutesModule.default;
 const pointsRoutes = pointsRoutesModule.default;
 const tripsRoutes = tripsRoutesModule.default;
 const uploadRoutes = uploadRoutesModule.default;
+const aiRoutes = aiRoutesModule.default;
 
 const app = express();
-// limit request body size to avoid large payload attacks
-app.use(express.json({ limit: '10kb' }));
+// Chat history is bounded by Joi; 32 KB leaves room for several assistant turns.
+app.use(express.json({ limit: '32kb' }));
 
 // basic security headers
 app.use(helmet());
@@ -93,6 +95,7 @@ app.use("/api/trip-reviews", tripReviewRoutes);
 app.use("/api/admin/points", pointsRoutes);
 app.use("/api/trips", tripsRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/ai", aiRoutes);
 
 // lightweight API root/status endpoint so visiting /api returns useful info
 app.get('/api', (req, res) => {

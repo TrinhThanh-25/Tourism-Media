@@ -1,6 +1,7 @@
 package com.example.tourismmedia.data.api;
 
 import com.example.tourismmedia.data.model.AppModels.AuthResponse;
+import com.example.tourismmedia.data.model.AppModels.AiChatResponse;
 import com.example.tourismmedia.data.model.AppModels.Challenge;
 import com.example.tourismmedia.data.model.AppModels.Location;
 import com.example.tourismmedia.data.model.AppModels.LocationImage;
@@ -56,6 +57,11 @@ public interface ApiService {
 
     @POST("auth/forgot-password")
     Call<Message> forgotPassword(@Body Map<String, Object> body);
+
+    // ---------------------------------------------------------- AI assistant
+    @POST("api/ai/chat")
+    Call<AiChatResponse> aiChat(@Header("Authorization") String auth,
+                                @Body Map<String, Object> body);
 
     // ----------------------------------------------------------- locations
     @GET("api/locations")

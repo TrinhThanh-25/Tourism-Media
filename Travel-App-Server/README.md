@@ -26,6 +26,31 @@ sách email phân cách bằng dấu phẩy để cấp role admin khi khởi đ
 được lưu trong `UPLOAD_DIR`; `PUBLIC_BASE_URL` phải là địa chỉ mà emulator hoặc
 điện thoại có thể truy cập để URL ảnh dùng được trên các client khác.
 
+Chatbot tư vấn dùng một API tương thích OpenAI ở backend. Endpoint, key, model
+và kiểu API được đổi qua `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` và
+`AI_API_STYLE` trong `.env`; Android không chứa các giá trị này và không cần
+build lại. `AI_API_STYLE` nhận `responses` hoặc `chat_completions`.
+Mặc định dự án dùng free tier của Google Gemini với model
+`gemini-3.1-flash-lite`, endpoint OpenAI-compatible và `chat_completions`.
+Tạo API key tại Google AI Studio rồi dán vào `AI_API_KEY` trong `.env`. Có thể
+điều chỉnh reasoning, timeout, token trả lời và rate limit bằng
+`AI_REASONING_EFFORT`, `AI_TIMEOUT_MS`,
+`AI_MAX_OUTPUT_TOKENS`, `AI_RATE_LIMIT_MAX`.
+
+Ví dụ đổi sang một dịch vụ hoặc model server tương thích Chat Completions:
+
+```env
+AI_BASE_URL=https://provider.example.com/v1
+AI_API_KEY=your-private-key
+AI_MODEL=provider-model-name
+AI_API_STYLE=chat_completions
+AI_REASONING_EFFORT=none
+```
+
+Với model server chạy cục bộ không kiểm tra Bearer token, có thể đặt
+`AI_API_KEY=local`; SDK vẫn yêu cầu biến này có giá trị. Provider dùng giao thức
+độc quyền khác Responses/Chat Completions cần thêm adapter backend tương ứng.
+
 ## Xác thực và phân quyền
 
 - Mật khẩu luôn được hash bằng bcrypt trước khi lưu và chỉ được kiểm tra bằng bcrypt.
@@ -45,6 +70,7 @@ Gửi access token bằng header `Authorization: Bearer <token>`.
 - `/api/me/rewards`, `/api/me/rewards/:rewardId/redeem`.
 - `/api/me/vouchers`, `/api/me/vouchers/:voucherId/use`.
 - `/api/locations`, `/api/reviews`, `/api/trips`, `/api/trip-reviews`.
+- `/api/ai/chat`: chatbot tư vấn dựa trên địa điểm thật trong database, yêu cầu JWT.
 - `/api/challenges`: đọc công khai; thao tác cá nhân cần JWT; tạo mới cần admin.
 - `/api/rewards`: đọc công khai; tạo/cấp/xóa voucher cần admin.
 - `/api/admin/points/transactions`: chỉnh điểm thủ công, chỉ admin.

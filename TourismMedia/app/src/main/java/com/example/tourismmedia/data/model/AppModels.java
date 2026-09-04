@@ -263,6 +263,20 @@ public final class AppModels {
         public String url;
     }
 
+    public static class ChatTurn {
+        public String role;
+        public String content;
+
+        public ChatTurn(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+    }
+
+    public static class AiChatResponse {
+        public String message;
+    }
+
     public static class TripReview {
         public long id;
         public long userId;
